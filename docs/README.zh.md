@@ -207,6 +207,32 @@ docker-compose logs -f udpbrutal
 
 诊断只做观测，尚不构成对停顿的修复。默认间隔 200ms（设为 true 同样使用 200ms），允许 100ms..60s；删除变量或设为 off 即关闭。每条隧道一份 `transport diagnostics`，每条活动反向 TCP 流另有 `reverse TCP diagnostics`，均带 `role`、`diagnostic_conn` 和流号以区分两端及 iperf 控制/数据连接。
 
+### 自动收包与停顿摘要
+
+保持已有 `UDPBRUTAL_DIAGNOSTICS: "200ms"` 即可。新版本每个采样间隔增加 `socket receive diagnostics`，记录 UDP 入口、连接分派和 socket 内核状态。Linux 自动按 socket inode 读取 `/proc/net/udp`、`udp6`，全进程共享每秒一次的缓存；不需要额外抓包工具、容器权限或修改 sysctl。
+
+反向 TCP 的一次写入等待达到 500ms 时，自动输出一次 `reverse TCP write wait`，包含两层收包计数、内核队列/丢弃、ACK/PTO、发送等待和流控额度。写操作结束并被下一次采样观察到时，输出 `reverse TCP write resumed`；流已关闭时仍可看原来的 `reverse TCP diagnostics closed`。空闲读取不会触发提醒。`hint` 是等待状态提示，不是根因结论；`observed_wait_ms` 的恢复值是采样估计，`counter_window_ms` 表示摘要计数覆盖的观测窗口。
+
+两端更新镜像后，保持原来的传输方式，导出两端完整日志即可，无需手动同步开始、停止抓包。已有配置不用增加新的诊断选项：
+
+```bash
+git pull --ff-only
+docker-compose up -d --build udpbrutal
+```
+
+| 新增字段 | 用途与限制 |
+| --- | --- |
+| socket_rx_packets / socket_rx_bytes | 本间隔从 UDP socket 包装层读出的数据报数/字节数，在连接 ID 分派之前计数 |
+| socket_dispatch_packets | 本间隔完成匹配 handler 调用的数量；用户态接收队列是否接受仍需看 rx_queue_drops |
+| socket_unmatched_cid | 本间隔没有匹配连接的短头报文；合法 stateless reset 也可能计入，不能单独认定错误 |
+| socket_header_drops / socket_non_quic / socket_empty_packets / socket_read_errors | 连接 ID 解析失败、非 QUIC、空数据报和 socket 读取错误计数 |
+| socket_rx_stage / socket_rx_stage_ms / socket_rx_age_ms | 接收线程正在 read、dispatch、read_error 或尚未观测到状态，以及状态持续时间/最后读出报文距今时间；read 等待本身不证明链路丢包 |
+| kernel_socket_status / kernel_socket_age_ms | 仅 ok 时解释内核队列/丢弃，年龄表示缓存时效；不支持、proc 不可读或未找到 socket 时不把 0 当作实测值 |
+| kernel_rx_drops / kernel_rx_queue / kernel_tx_queue | 该 UDP socket 的累计内核丢弃及内核报告的队列字节；丢弃为 0 不排除网卡、路由和防火墙等其他位置 |
+| kernel_rcvbuf / kernel_sndbuf | 开启诊断时读取的实际 socket 缓冲区值，遵循 Linux 的计量方式；读取失败为 0 |
+
+入口与内核指标属于建立连接时的整个 UDP Transport，包含该 socket 上的其他连接；它们不是逐连接统计，也不跟踪后续新增的迁移 socket。计数并非原子事务快照，少量瞬时差异正常。接收线程只更新计数和状态，不读取 proc、不写逐包日志或载荷；内核采样在诊断快照调用方执行。其他平台仍保留入口/分派计数，内核项标为 unsupported_platform。诊断默认关闭，关闭时不扫描 proc 或生成摘要。
+
 | 指标 | 用途与限制 |
 | --- | --- |
 | quic_tx_mbps / socket_tx_mbps | 引擎发送计数与 socket 接受字节数的速率；普通/GSO 写入成功及 sendmmsg 已接受前缀计入后者，不代表对端已收到 |

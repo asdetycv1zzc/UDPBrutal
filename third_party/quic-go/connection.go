@@ -161,9 +161,10 @@ type Conn struct {
 	connIDManager   *connIDManager
 	connIDGenerator *connIDGenerator
 
-	rttStats    *utils.RTTStats
-	connStats   utils.ConnectionStats
-	diagnostics atomic.Pointer[connectionDiagnostics]
+	rttStats            *utils.RTTStats
+	connStats           utils.ConnectionStats
+	diagnostics         atomic.Pointer[connectionDiagnostics]
+	diagnosticTransport *Transport // initial socket; immutable after construction
 
 	cryptoStreamManager   *cryptoStreamManager
 	sentPacketHandler     ackhandler.SentPacketHandler
@@ -298,6 +299,7 @@ var newConnection = func(
 		version:             v,
 	}
 	w := &wrappedConn{pathReceiver: pathReceiver{Conn: s}}
+	s.attachDiagnosticTransport(runner)
 	if qlogTrace != nil {
 		s.qlogger = qlogTrace.AddProducer()
 	}
@@ -423,6 +425,7 @@ var newClientConnection = func(
 		version:             v,
 	}
 	w := &wrappedConn{pathReceiver: pathReceiver{Conn: s}}
+	s.attachDiagnosticTransport(runner)
 	if qlogTrace != nil {
 		s.qlogger = qlogTrace.AddProducer()
 	}

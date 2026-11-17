@@ -237,6 +237,32 @@ For the Compose v2 plugin use `docker compose`. A directly launched binary accep
 
 These observers help locate the stall; they are not a stall fix. Diagnostics are disabled by default. Use true for 200ms, a duration from 100ms to 60s, or off to disable them. A tunnel emits transport diagnostics; active reverse TCP relays also emit reverse TCP diagnostics. Role, diagnostic_conn and stream distinguish endpoints and iperf control/data streams.
 
+### Automatic receive and write-wait diagnostics
+
+Keep the existing `UDPBRUTAL_DIAGNOSTICS: "200ms"` setting. Each interval adds `socket receive diagnostics` for UDP ingress, connection dispatch and kernel socket state. Linux matches the socket inode in `/proc/net/udp` and `udp6`, sharing a once-per-second cache across the process. No capture tool, extra container capability or sysctl change is needed.
+
+A reverse TCP write waiting at least 500ms emits one `reverse TCP write wait` summary, including both receive layers, kernel queues/drops, ACK/PTO, socket-write waits and flow-control credit. A later sample observing that write's completion emits `reverse TCP write resumed`; closed streams retain the original `reverse TCP diagnostics closed` record. Idle reads do not trigger alerts. `hint` describes the observed wait, not a root-cause verdict. Recovery's `observed_wait_ms` is a sampling estimate; `counter_window_ms` identifies the summary's observation window.
+
+After updating both images, continue the same transfer and export both complete logs. There is no need to coordinate capture timing or add diagnostic options:
+
+```bash
+git pull --ff-only
+docker-compose up -d --build udpbrutal
+```
+
+| New fields | Interpretation |
+| --- | --- |
+| socket_rx_packets / socket_rx_bytes | Datagrams/bytes read from the UDP socket wrapper during this interval, before connection-ID dispatch |
+| socket_dispatch_packets | Matching handler calls completed during this interval; rx_queue_drops separately identifies receive-queue rejection |
+| socket_unmatched_cid | Short-header packets without a matching connection; legitimate stateless resets may also count |
+| socket_header_drops / socket_non_quic / socket_empty_packets / socket_read_errors | Connection-ID parse failures, non-QUIC packets, empty datagrams and socket-read errors |
+| socket_rx_stage / socket_rx_stage_ms / socket_rx_age_ms | Receive loop's read/dispatch/read_error/unknown stage, its age, and last datagram age; a pending read alone does not establish path loss |
+| kernel_socket_status / kernel_socket_age_ms | Interpret kernel queues/drops only with status ok; other statuses are unavailable, not measured zeros. Age identifies cache freshness |
+| kernel_rx_drops / kernel_rx_queue / kernel_tx_queue | Cumulative socket drops and queue bytes reported by Linux; zero drops does not exclude NIC, routing or firewall drops |
+| kernel_rcvbuf / kernel_sndbuf | Socket buffer values read when diagnostics starts, using Linux accounting; zero means unavailable |
+
+Ingress/kernel fields cover the entire initial UDP Transport, including other connections on that socket; they are not per-connection metrics and do not follow later migration sockets. Counter reads are not transactional, so small instantaneous mismatches are normal. The receive loop only updates counters/stages; proc reads run on the snapshot caller, with no per-packet logging or payload capture. Other platforms retain ingress/dispatch counters and label kernel statistics unsupported_platform. Disabled diagnostics do not scan proc or generate summaries.
+
 | Fields | Interpretation |
 | --- | --- |
 | quic_tx_mbps / socket_tx_mbps | Engine send rate and socket-accepted byte rate; successful ordinary/GSO writes and the accepted sendmmsg prefix count toward the latter, not proof of peer delivery |

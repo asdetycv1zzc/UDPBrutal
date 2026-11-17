@@ -159,7 +159,8 @@ type Transport struct {
 
 	server *baseServer
 
-	conn rawConn
+	conn               rawConn
+	receiveDiagnostics atomic.Pointer[socketReceiveDiagnostics]
 
 	closeQueue          chan closePacket
 	statelessResetQueue chan receivedPacket
@@ -546,7 +547,17 @@ func (t *Transport) close(e error) {
 
 func (t *Transport) listen(conn rawConn) {
 	for {
+		d := t.receiveDiagnostics.Load()
+		if d != nil {
+			d.beginRead()
+		}
 		p, err := conn.ReadPacket()
+		if d == nil {
+			d = t.receiveDiagnostics.Load() // diagnostics may start during a read
+		}
+		if d != nil {
+			d.readResult(p, err)
+		}
 		//nolint:staticcheck // SA1019 ignore this!
 		// TODO: This code is used to ignore wsa errors on Windows.
 		// Since net.Error.Temporary is deprecated as of Go 1.18, we should find a better solution.
@@ -580,15 +591,25 @@ func (t *Transport) maybeStopListening() {
 }
 
 func (t *Transport) handlePacket(p receivedPacket) {
+	d := t.receiveDiagnostics.Load()
 	if len(p.data) == 0 {
+		if d != nil {
+			d.emptyPackets.Add(1)
+		}
 		return
 	}
 	if !wire.IsPotentialQUICPacket(p.data[0]) && !wire.IsLongHeaderPacket(p.data[0]) {
+		if d != nil {
+			d.nonQUICPackets.Add(1)
+		}
 		t.handleNonQUICPacket(p)
 		return
 	}
 	connID, err := wire.ParseConnectionID(p.data, t.connIDLen)
 	if err != nil {
+		if d != nil {
+			d.headerDrops.Add(1)
+		}
 		t.logger.Debugf("error parsing connection ID on packet from %s: %s", p.remoteAddr, err)
 		if t.Tracer != nil {
 			t.Tracer.RecordEvent(qlog.PacketDropped{
@@ -603,7 +624,13 @@ func (t *Transport) handlePacket(p receivedPacket) {
 	// If there's a connection associated with the connection ID, pass the packet there.
 	if handler, ok := (*packetHandlerMap)(t).Get(connID); ok {
 		handler.handlePacket(p)
+		if d != nil {
+			d.dispatched.Add(1)
+		}
 		return
+	}
+	if d != nil && !wire.IsLongHeaderPacket(p.data[0]) {
+		d.unmatchedCID.Add(1)
 	}
 	// RFC 9000 section 10.3.1 requires that the stateless reset detection logic is run for both
 	// packets that cannot be associated with any connections, and for packets that can't be decrypted.

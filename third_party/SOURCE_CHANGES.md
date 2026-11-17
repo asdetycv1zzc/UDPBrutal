@@ -12,6 +12,7 @@
 - `third_party/quic-go/server.go`
 - `third_party/quic-go/packet_packer.go`
 - `third_party/quic-go/connection.go`
+- `third_party/quic-go/transport.go`
 - `third_party/quic-go/internal/ackhandler/sent_packet_handler.go`
 - `third_party/quic-go/http3/server.go`
 - `third_party/quic-go/internal/protocol/version.go`
@@ -26,10 +27,12 @@
 - `quic-go/internal/handshake/plaintext_setup.go`：明文握手及上游事件接口。
 - `quic-go/internal/handshake/plaintext_protection.go`：直接复制包字节、原包号恢复与字面 token。
 - `quic-go/diagnostics.go`、`quic-go/internal/ackhandler/diagnostics.go`：可选被动状态快照；connection/send_queue 中加入默认关闭的采样、时间戳和计数 hook；sent_packet_handler 中加入默认关闭的判丢、误判与 PTO 重新排队计数。计数不依赖 Brutal 等外部控制器更新内置 CUBIC 的公共统计。
+- `quic-go/diagnostics_transport.go`、`diagnostics_socket_*.go`：原始 UDP 入口、连接分派及读取阶段计数；connection 记录初始 Transport，transport 仅加入默认关闭的观测 hook。Linux 按 fd inode 读取 proc 中的 socket 队列/丢弃，诊断调用方共享每秒缓存；其他平台将内核项标为不支持。不修改 socket 选项、报文处理或接收唤醒。
 - `quic-go/send_batch*.go`：Linux 非 GSO 路径通过 sendmmsg 提交已有队列中的独立数据报；不等待填满批次，不修改发送许可或 pacer。保留控制消息、数据报边界和部分成功前缀，错误按原逐包路径处理；其他平台回退普通写入。send_queue 接入此可选批量写入，诊断新增调用、接受包数和回退计数。
 - `hysteria/core/client/plaintext_extension.go`：开放原生连接供反向双向流使用。
 - `hysteria/core/extension/protocol.go`：复用原编码、分片及拥塞配置校验。
 - 项目 `internal/proxy/reverse_*.go`：反向端口注册、原生流和 DATAGRAM 分派。
+- 项目 `internal/proxy/diagnostics*.go`：在原诊断配置下输出入口/内核计数，并为至少等待 500ms 的写操作自动输出观测摘要；空闲读取不触发。提示不是根因结论，默认关闭。
 - 项目 `internal/proxy/udp_*.go`：有界队列、共享预算、到期堆、Linux 批量 IO 和通用回退；Linux 错误时可能返回的负消息数归零，避免回退使用负下标。
 - `socks5/`：固定版本的原始协议文件和许可；不引入未使用的独立服务器、go-cache 或 runnergroup。
 
@@ -37,6 +40,6 @@
 
 上游 internal/handshake 中的 AEAD、cipher suite、header protector、HKDF、TLS/uTLS、TLS tickets 和 key-update 实现，以及 internal/qtls 均未引入本地 fork。保留的 interface/token-generator 由明文适配实现。
 
-`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go 外的原 ACK/loss 文件、HY2 Brutal/pacer/frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。`connection.go` 与 `sent_packet_handler.go` 新增被动诊断 hook；`send_queue.go` 加入批量 IO 和观测，保留上游拥塞、pacer、发送许可、恢复和流控决定。
+`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go 外的原 ACK/loss 文件、HY2 Brutal/pacer/frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 新增被动诊断 hook；`send_queue.go` 加入批量 IO 和观测，保留上游拥塞、pacer、发送许可、恢复和流控决定。
 
 本次未编译或运行验证。

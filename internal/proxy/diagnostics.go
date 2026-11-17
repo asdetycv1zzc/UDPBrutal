@@ -40,9 +40,11 @@ type connectionObserver struct {
 	streams sync.Map // quic.StreamID -> *relayObserver
 }
 type relayObserver struct {
-	stream   *quic.Stream
-	toTunnel relayDirection
-	toLocal  relayDirection
+	stream       *quic.Stream
+	toTunnel     relayDirection
+	toLocal      relayDirection
+	toTunnelWait writeWaitObserver // reporter goroutine only
+	toLocalWait  writeWaitObserver
 }
 type relayDirection struct {
 	read    atomic.Uint64
@@ -61,17 +63,17 @@ const (
 func (d *relayDirection) stage(state uint64) {
 	d.state.Store(uint64(time.Since(diagnosticEpoch).Nanoseconds())<<2 | state)
 }
-func (d *relayDirection) snapshot() (string, float64) {
+func (d *relayDirection) snapshot() (string, float64, uint64) {
 	v := d.state.Load()
 	switch v & 3 {
 	case diagnosticReading:
-		return "read", diagnosticMS(time.Since(diagnosticEpoch) - time.Duration(v>>2))
+		return "read", diagnosticMS(time.Since(diagnosticEpoch) - time.Duration(v>>2)), v
 	case diagnosticWriting:
-		return "write", diagnosticMS(time.Since(diagnosticEpoch) - time.Duration(v>>2))
+		return "write", diagnosticMS(time.Since(diagnosticEpoch) - time.Duration(v>>2)), v
 	case diagnosticDone:
-		return "done", 0
+		return "done", 0, v
 	default:
-		return "running", 0
+		return "running", 0, v
 	}
 }
 
@@ -156,9 +158,9 @@ func (d *connectionObserver) run(interval time.Duration) {
 	defer diagnosticConnections.CompareAndDelete(d.conn, d)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+	previousRecovery := d.conn.DiagnosticSnapshot()
 	previous := d.conn.ConnectionStats()
-	previousSocketBytes := uint64(0)
-	var previousRecovery quic.DiagnosticSnapshot
+	previousSocketBytes := previousRecovery.SocketWriteBytes
 	last := time.Now()
 	for {
 		select {
@@ -166,11 +168,11 @@ func (d *connectionObserver) run(interval time.Duration) {
 			return
 		case <-ticker.C:
 		}
+		x := d.conn.DiagnosticSnapshot()
 		now := time.Now()
 		elapsed := now.Sub(last)
 		last = now
 		stats := d.conn.ConnectionStats()
-		x := d.conn.DiagnosticSnapshot()
 		slog.Info("transport diagnostics", "diagnostic_conn", d.id, "role", d.role,
 			"sample_ms", diagnosticMS(elapsed), "quic_tx_mbps", diagnosticMbps(stats.BytesSent-previous.BytesSent, elapsed),
 			"quic_rx_mbps", diagnosticMbps(stats.BytesReceived-previous.BytesReceived, elapsed),
@@ -194,13 +196,13 @@ func (d *connectionObserver) run(interval time.Duration) {
 			"socket_write_pending_ms", diagnosticMS(x.SocketWritePending),
 			"socket_write_last_ms", diagnosticMS(x.SocketWriteLastDuration),
 			"socket_write_age_ms", diagnosticMS(x.SocketWriteAge), "socket_write_calls", x.SocketWriteCalls, "socket_write_errors", x.SocketWriteErrors)
-		previous = stats
-		previousSocketBytes = x.SocketWriteBytes
-		previousRecovery = x
+		receiveArgs := []any{"diagnostic_conn", d.id, "role", d.role, "sample_ms", diagnosticMS(elapsed)}
+		receiveArgs = append(receiveArgs, receiveDiagnosticArgs(x.SocketReceive, previousRecovery.SocketReceive)...)
+		slog.Info("socket receive diagnostics", receiveArgs...)
 		d.streams.Range(func(key, value any) bool {
 			r := value.(*relayObserver)
-			outStage, outWait := r.toTunnel.snapshot()
-			inStage, inWait := r.toLocal.snapshot()
+			outStage, outWait, outOperation := r.toTunnel.snapshot()
+			inStage, inWait, inOperation := r.toLocal.snapshot()
 			s := r.stream.StreamDiagnosticSnapshot()
 			slog.Info("reverse TCP diagnostics", "diagnostic_conn", d.id, "role", d.role, "stream", key,
 				"to_tunnel_stage", outStage, "to_tunnel_wait_ms", outWait,
@@ -211,7 +213,12 @@ func (d *connectionObserver) run(interval time.Duration) {
 				"stream_credit", s.StreamCredit, "conn_credit_ready", s.ConnectionCreditReady, "conn_credit", s.ConnectionCredit,
 				"retransmission_frames", s.RetransmissionFrames,
 				"receive_ready", s.ReceiveReady, "receive_offset", s.ReceiveOffset, "receive_highest", s.ReceiveHighest)
+			r.toTunnelWait.observe(d, key, "to_tunnel", outStage, outWait, outOperation, s, x, previousRecovery, now, elapsed)
+			r.toLocalWait.observe(d, key, "to_local", inStage, inWait, inOperation, s, x, previousRecovery, now, elapsed)
 			return true
 		})
+		previous = stats
+		previousSocketBytes = x.SocketWriteBytes
+		previousRecovery = x
 	}
 }

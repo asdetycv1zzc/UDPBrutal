@@ -51,6 +51,14 @@ Partial sends continue only with the unaccepted suffix; ordinary writes handle
 errors and unsupported platforms. This IO optimization does not change the wire
 format or require an additional protocol negotiation.
 
+Optional diagnostics also count socket-wrapper datagrams before connection-ID
+dispatch, completed handler calls and unmatched short-header IDs. These counters
+cover the initial shared Transport, not individual peers or later migration
+sockets. Linux kernel queue/drop samples are read by the diagnostic caller from
+proc using the socket inode, with a process-wide one-second cache. The receive
+path only updates counters/stages; no socket options, packet contents or receive
+wakeups are changed. Other platforms report kernel samples as unavailable.
+
 ## Plaintext handshake
 
 The upstream reliable CRYPTO streams carry the replacement handshake records.

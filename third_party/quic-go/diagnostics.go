@@ -16,6 +16,7 @@ type connectionDiagnostics struct {
 	loop         atomic.Pointer[connectionDiagnosticSample]
 	socket       socketWriteDiagnostics
 	rxQueueDrops atomic.Uint64
+	receive      *socketReceiveDiagnostics
 }
 type connectionDiagnosticSample struct {
 	at             monotime.Time
@@ -69,13 +70,18 @@ type DiagnosticSnapshot struct {
 	SocketBatchCalls        uint64
 	SocketBatchPackets      uint64
 	SocketBatchFallbacks    uint64
+	SocketReceive           SocketReceiveDiagnosticSnapshot
 }
 
 // EnableDiagnostics enables passive 50 ms owner-loop snapshots. Nothing wakes
 // the loop to take a sample: stale samples are part of the diagnostic evidence.
 func (c *Conn) EnableDiagnostics() {
 	if c.diagnostics.Load() == nil {
-		c.diagnostics.CompareAndSwap(nil, &connectionDiagnostics{})
+		d := &connectionDiagnostics{}
+		if c.diagnosticTransport != nil {
+			d.receive = c.diagnosticTransport.enableSocketDiagnostics()
+		}
+		c.diagnostics.CompareAndSwap(nil, d)
 	}
 }
 func (c *Conn) captureDiagnostics() {
@@ -123,6 +129,10 @@ func (c *Conn) DiagnosticSnapshot() DiagnosticSnapshot {
 	if d == nil {
 		return DiagnosticSnapshot{}
 	}
+	var receive SocketReceiveDiagnosticSnapshot
+	if d.receive != nil {
+		receive = d.receive.snapshot()
+	}
 	sample := d.loop.Load()
 	started := monotime.Time(d.socket.started.Load())
 	completed := monotime.Time(d.socket.completed.Load())
@@ -134,6 +144,7 @@ func (c *Conn) DiagnosticSnapshot() DiagnosticSnapshot {
 		SocketBatchCalls:        d.socket.batchCalls.Load(),
 		SocketBatchPackets:      d.socket.batchPackets.Load(),
 		SocketBatchFallbacks:    d.socket.batchFallbacks.Load(),
+		SocketReceive:           receive,
 	}
 	if !started.IsZero() {
 		out.SocketWritePending = now.Sub(started)

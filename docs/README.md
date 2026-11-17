@@ -239,12 +239,15 @@ These observers help locate the stall; they are not a stall fix. Diagnostics are
 
 | Fields | Interpretation |
 | --- | --- |
-| quic_tx_mbps / socket_tx_mbps | Engine send rate and complete successful socket-write rate; successful GSO writes count the full batch and do not prove peer delivery |
+| quic_tx_mbps / socket_tx_mbps | Engine send rate and socket-accepted byte rate; successful ordinary/GSO writes and the accepted sendmmsg prefix count toward the latter, not proof of peer delivery |
+| socket_batch_calls / socket_batch_packets | Batch-write calls and datagrams accepted through those calls during this report interval; confirms use of the non-GSO batch path |
+| socket_batch_fallbacks | Batch failures or zero-progress attempts falling back to ordinary writes during this interval; accepted prefixes are not resubmitted |
 | ack_age_ms / packet_age_ms / pto_count | Age of the last valid ACK and processed packet, and current PTO backoff count; ACK progress can reset the PTO count |
 | inflight / cwnd / send_mode / tracked_packets | Owner-loop snapshot of in-flight bytes, the actual controller's window, send permission and tracked packets |
 | loop_age_ms / snapshot_ready | Snapshot freshness. The observer does not wake the connection loop, so stale snapshots on idle connections are expected |
 | loss_timer_ms / pacing_timer_ms | Last sampled timer deadline relative to now; interpret with timer_set and loop_age_ms, not as an independent proof of a timer fault |
 | send_queue / socket_write_pending_ms / socket_write_last_ms | Socket-send queue length and current/last socket-write duration |
+| socket_write_calls / socket_write_errors | Cumulative ordinary/batch write operations and errors, including batch errors recovered by ordinary writes; not tunnel failures or a path-loss counter |
 | rx_queue_drops | User-space QUIC receive-queue drops, distinct from the kernel socket's ss d counter |
 | to_tunnel_stage / to_local_stage | Whether each copy direction is reading, writing, running or done; wait_ms measures that current IO operation |
 | buffered / stream_credit / conn_credit | Pending stream data and remaining send credit; only interpret values whose corresponding Ready flag is true |
@@ -271,6 +274,19 @@ docker-compose restart udpbrutal
 ```
 
 Confirm `gso=false` in the new logs, keeping the original transfer direction, bandwidth and ports. Disabling GSO isolates the batched send path and may increase CPU use; a changed result alone does not establish a driver defect.
+
+On Linux, when GSO is off and multiple datagrams are already queued, `sendmmsg` submits up to eight distinct datagrams per call. It does not concatenate UDP payloads, request `UDP_SEGMENT` or wait to fill a batch. The upstream congestion window, pacer and send-permission decisions remain in charge. Datagram boundaries, destination and control messages are preserved; batch buffers and metadata are reused.
+
+Partial sends continue with only the unaccepted suffix. Errors retry that suffix through ordinary writes, preserving per-datagram PMTU handling. Unsupported or denied batch operations disable batching for that connection. Other platforms and custom connections without batch support retain ordinary writes. Reverse UDP batch IO also normalizes Linux's possible negative message count on syscall errors, keeping fallback indices valid.
+
+Keep `quic.disableGSO: true` to use this path; there is no additional batch setting. Older images need updated source and an image rebuild for the optimization and `socket_batch_*` fields:
+
+```bash
+git pull --ff-only
+docker-compose up -d --build udpbrutal
+```
+
+With diagnostics enabled, `socket_batch_calls` and `socket_batch_packets` show actual batch submissions. Zero is normal when only one packet is queued. This change has not been built or benchmarked, does not guarantee a specific throughput, and does not establish the cause of the earlier GSO-enabled stalls.
 
 If pauses persist, capture UDP headers simultaneously on both hosts and retain matching diagnostic logs. Replace `443` if the tunnel uses another port:
 

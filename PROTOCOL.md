@@ -40,7 +40,16 @@ There is no fixed 1200-byte ceiling on the outer UDP payload. The source
 DF support, and the source MTU discoverer determine packet sizing. QUIC's
 1200-byte minimum and Hysteria's separate `MaxDatagramFrameSize=1200` must not
 be confused with a fixed outer packet limit. The MTU discoverer and congestion
-controller integration are unchanged source files.
+controller adapters are unchanged source files. The recovery owner has optional
+diagnostic counter hooks; its recovery decisions remain the pinned algorithms.
+
+When GSO is disabled on Linux, the socket sender can submit up to eight already
+queued datagrams with sendmmsg. Each datagram retains its own payload boundary,
+destination and control messages. This adds no batch-fill delay or UDP_SEGMENT
+request and does not change packet packing, pacing or congestion decisions.
+Partial sends continue only with the unaccepted suffix; ordinary writes handle
+errors and unsupported platforms. This IO optimization does not change the wire
+format or require an additional protocol negotiation.
 
 ## Plaintext handshake
 
@@ -56,7 +65,7 @@ to 65536 bytes; the original CRYPTO-stream offset limit also applies.
    parameters on Initial, plus ServerFinished (kind 3) on Handshake.
 3. The client waits for ServerFinished before sending ClientFinished (kind 4)
    on Handshake, then announces application readiness to the engine.
-4. The server completes only after receiving ClientFinished. The unchanged
+4. The server completes only after receiving ClientFinished. The native
    engine sends HANDSHAKE_DONE and applies its normal confirmation, ACK/loss,
    retransmission, packet-space disposal, and MTU-discovery transitions.
 

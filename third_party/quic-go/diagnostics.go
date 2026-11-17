@@ -28,12 +28,15 @@ type connectionDiagnosticSample struct {
 	gso            bool
 }
 type socketWriteDiagnostics struct {
-	started      atomic.Int64
-	completed    atomic.Int64
-	lastDuration atomic.Int64
-	calls        atomic.Uint64
-	bytes        atomic.Uint64
-	errors       atomic.Uint64
+	started        atomic.Int64
+	completed      atomic.Int64
+	lastDuration   atomic.Int64
+	calls          atomic.Uint64
+	bytes          atomic.Uint64
+	errors         atomic.Uint64
+	batchCalls     atomic.Uint64
+	batchPackets   atomic.Uint64
+	batchFallbacks atomic.Uint64
 }
 
 type DiagnosticSnapshot struct {
@@ -63,6 +66,9 @@ type DiagnosticSnapshot struct {
 	SocketWriteCalls        uint64
 	SocketWriteBytes        uint64
 	SocketWriteErrors       uint64
+	SocketBatchCalls        uint64
+	SocketBatchPackets      uint64
+	SocketBatchFallbacks    uint64
 }
 
 // EnableDiagnostics enables passive 50 ms owner-loop snapshots. Nothing wakes
@@ -125,6 +131,9 @@ func (c *Conn) DiagnosticSnapshot() DiagnosticSnapshot {
 		ReceiveQueueDrops: d.rxQueueDrops.Load(),
 		SocketWriteCalls:  d.socket.calls.Load(), SocketWriteBytes: d.socket.bytes.Load(), SocketWriteErrors: d.socket.errors.Load(),
 		SocketWriteLastDuration: time.Duration(d.socket.lastDuration.Load()),
+		SocketBatchCalls:        d.socket.batchCalls.Load(),
+		SocketBatchPackets:      d.socket.batchPackets.Load(),
+		SocketBatchFallbacks:    d.socket.batchFallbacks.Load(),
 	}
 	if !started.IsZero() {
 		out.SocketWritePending = now.Sub(started)

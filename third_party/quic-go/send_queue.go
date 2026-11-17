@@ -1,11 +1,9 @@
 package quic
 
 import (
-	"errors"
 	"net"
 	"sync/atomic"
 
-	"github.com/apernet/quic-go/internal/monotime"
 	"github.com/apernet/quic-go/internal/protocol"
 )
 
@@ -81,6 +79,9 @@ func (h *sendQueue) Available() <-chan struct{} {
 func (h *sendQueue) Run() error {
 	defer close(h.runStopped)
 	var shouldClose bool
+	var batchChecked bool
+	var batchWriter packetBatchWriter
+	var entries [sendQueueCapacity]queueEntry
 	for {
 		if shouldClose && len(h.queue) == 0 {
 			return nil
@@ -91,36 +92,26 @@ func (h *sendQueue) Run() error {
 			// make sure that all queued packets are actually sent out
 			shouldClose = true
 		case e := <-h.queue:
-			d := h.diagnostics.Load()
-			var started monotime.Time
-			if d != nil {
-				started = monotime.Now()
-				d.calls.Add(1)
-				d.started.Store(int64(started))
-			}
-			err := h.conn.Write(e.buf.Data, e.gsoSize, e.ecn)
-			if d != nil {
-				done := monotime.Now()
-				d.lastDuration.Store(int64(done.Sub(started)))
-				d.completed.Store(int64(done))
-				if err == nil {
-					d.bytes.Add(uint64(len(e.buf.Data)))
-				} else {
-					d.errors.Add(1)
+			entries[0] = e
+			count := 1
+			if !h.conn.capabilities().GSO {
+				if !batchChecked {
+					batchWriter = newPacketBatchWriter(h.conn)
+					batchChecked = true
 				}
-				d.started.Store(0)
-			}
-			if err != nil {
-				// This additional check enables:
-				// 1. Checking for "datagram too large" message from the kernel, as such,
-				// 2. Path MTU discovery,and
-				// 3. Eventual detection of loss PingFrame.
-				var tooLarge *DatagramTooLargeError
-				if !isSendMsgSizeErr(err) && !errors.As(err, &tooLarge) {
-					return err
+				if batchWriter != nil && e.gsoSize == 0 {
+					// Only take packets already queued. Never wait to fill a
+					// batch or ask the connection loop to generate more data.
+					queued := min(len(h.queue), len(entries)-1)
+					for range queued {
+						entries[count] = <-h.queue
+						count++
+					}
 				}
 			}
-			e.buf.Release()
+			if err := h.writeQueued(entries[:count], &batchWriter); err != nil {
+				return err
+			}
 			select {
 			case h.available <- struct{}{}:
 			default:

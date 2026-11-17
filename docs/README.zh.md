@@ -209,12 +209,15 @@ docker-compose logs -f udpbrutal
 
 | 指标 | 用途与限制 |
 | --- | --- |
-| quic_tx_mbps / socket_tx_mbps | 引擎发送计数与成功 socket 写入计数的速率；GSO 批次完整写入成功才计入后者，不代表对端已收到 |
+| quic_tx_mbps / socket_tx_mbps | 引擎发送计数与 socket 接受字节数的速率；普通/GSO 写入成功及 sendmmsg 已接受前缀计入后者，不代表对端已收到 |
+| socket_batch_calls / socket_batch_packets | 本采样间隔的批量写入调用数及其已接受的数据报数；用于确认非 GSO 批量路径是否被使用 |
+| socket_batch_fallbacks | 本采样间隔批量失败或无进展后转逐包写入的次数；已接受前缀不重复发送 |
 | ack_age_ms / packet_age_ms / pto_count | 最近有效 ACK、已处理报文距当前的时间，以及当前 PTO 退避次数；PTO 次数可在 ACK 恢复后归零 |
 | inflight / cwnd / send_mode / tracked_packets | 原发送线程采集的在途字节、实际控制器窗口、发送许可及跟踪包数 |
 | loop_age_ms / snapshot_ready | 发送线程快照的时效性；快照按自然事件被动采集，空闲时变旧正常，不会唤醒发送线程来取样 |
 | loss_timer_ms / pacing_timer_ms | 最近快照里的恢复/节奏定时器距当前的时间；需同时看对应 timer_set 和 loop_age_ms，负值本身不能证明定时器故障 |
 | send_queue / socket_write_pending_ms / socket_write_last_ms | 发送队列长度、正在进行的 socket 写入耗时和上次写入耗时 |
+| socket_write_calls / socket_write_errors | 普通及批量写入操作的累计调用/错误次数；错误包含随后由逐包回退恢复的批量失败，不等于隧道断开或线路丢包 |
 | rx_queue_drops | QUIC 用户态收包队列累计丢包数；它与内核 socket 的 ss d 计数不同 |
 | to_tunnel_stage / to_local_stage | 向隧道/向本地连接的拷贝分别正在 read、write、running 或 done；wait_ms 是当前这次调用的耗时 |
 | buffered / stream_credit / conn_credit | 流内等待发送的字节和剩余流控额度；仅在 send_ready/conn_credit_ready 为 true 时解释对应值 |
@@ -241,6 +244,19 @@ docker-compose restart udpbrutal
 ```
 
 确认新日志为 `gso=false` 后，沿用出现问题时的传输方向、带宽和端口。关闭 GSO 仅用于区分批量发送路径，可能增加 CPU 开销；结果变化本身也不足以证明驱动缺陷。
+
+Linux 在 GSO 关闭且有多个已排队数据报时，自动使用 `sendmmsg` 一次提交至多 8 个独立数据报。它不拼接 UDP 载荷、不设置 `UDP_SEGMENT`，也不等待凑满批次；原拥塞窗口、pacer 和发送许可决定仍由上游引擎作出。控制消息、目的地址和数据报边界保留，批量缓冲与元数据复用。
+
+部分成功时只继续提交未接受的后缀；失败时对该后缀逐包处理，保留原 PMTU 错误语义。不支持批量操作或权限拒绝时，对当前连接禁用批量写入。其他平台、自定义且不支持批量写入的连接仍使用普通路径。反向 UDP 批量 IO 同时将 Linux 错误时可能返回的负消息数归零，确保回退不会使用负下标。
+
+保持 `quic.disableGSO: true` 即可使用这一发送路径，无额外批量配置项。已有旧镜像需更新源码并重建才能获得此优化及 `socket_batch_*` 指标：
+
+```bash
+git pull --ff-only
+docker-compose up -d --build udpbrutal
+```
+
+启用诊断后，`socket_batch_calls` 和 `socket_batch_packets` 显示实际批量提交情况；低负载时只有一个待发包，因此为 0 正常。该改动尚未经过构建或性能验证，不保证特定吞吐，也没有确认此前 GSO 开启时停顿的根因。
 
 如果仍出现停顿，在两端宿主机同时捕获 UDP 头部，并保留对应诊断日志。以下命令使用当前示例隧道端口；如有修改，替换 `443`：
 

@@ -41,6 +41,10 @@ func (r *batchUDPReader) read() ([]udpReadPacket, error) {
 		return r.fallback.read()
 	}
 	n, err := r.conn.ReadBatch(r.messages, 0)
+	// Linux can return -1 with a syscall error; no messages were received.
+	if n < 0 {
+		n = 0
+	}
 	if n == 0 && batchUnsupported(err) {
 		r.batchDisabled = true
 		return r.fallback.read()
@@ -101,6 +105,10 @@ func (w *batchUDPWriter) write(packets []udpWritePacket) (int, error) {
 			}
 		}
 		n, err := w.conn.WriteBatch(w.messages[:size], 0)
+		// Keep the accepted-prefix count valid on Linux syscall errors.
+		if n < 0 {
+			n = 0
+		}
 		for i := 0; i < size; i++ {
 			w.messages[i].Buffers[0] = nil
 			w.messages[i].Addr = nil

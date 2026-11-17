@@ -1,0 +1,18 @@
+services:
+  udpbrutal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["server", "-c", "/etc/udpbrutal/config.yaml"]
+    ports:
+      - "443:443/udp"       # UDPBrutal tunnel
+      - "18080:18080/tcp"   # Example reverseTCP listener
+      - "15353:15353/udp"   # Example reverseUDP listener
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /etc/udpbrutal/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false

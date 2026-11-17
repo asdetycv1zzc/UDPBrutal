@@ -142,15 +142,48 @@ See [PROTOCOL.md](../PROTOCOL.md) for wire behavior and [NOTICE.md](../NOTICE.md
 
 Local compilation and static analysis have been completed. Proxy traffic, lossy networks, and multiple-source forwarding have not been verified end to end. Cross-platform runtime support remains unverified. The repository includes no functional test suite, and builds require a manual request.
 
-## Docker
+## Docker Compose
 
-On Linux, host networking makes reverse TCP and UDP listeners available directly on the host:
+Use Docker with Compose v2 and Linux containers. The included [docker-compose.yml](../docker-compose.yml) starts the UDPBrutal **server** using the repository's Dockerfile and the default bridge network.
+
+From the repository root, prepare the configuration:
 
 ```bash
-docker build -t udpbrutal .
-docker run --rm --network host \
-  -v "$PWD/server.yaml:/etc/udpbrutal/config.yaml:ro" \
-  udpbrutal
+cp examples/server.yaml config.yaml
 ```
 
-For bridge networking, publish the tunnel port and each mapping port explicitly, including the appropriate TCP or UDP protocol.
+Edit `config.yaml`: set the server `auth.password` to the same value as the client's `auth`, and keep `listen: :443` with the default port mapping. The example enables reverse TCP and UDP listeners.
+
+Build and start the server when you are ready:
+
+```bash
+docker compose up -d --build
+docker compose logs -f udpbrutal
+```
+
+The first command builds an image for the Docker engine's native platform. No prebuilt image is required. The host's `config.yaml` is mounted read-only at `/etc/udpbrutal/config.yaml`; prepare it before starting Compose.
+
+| Host port | Container port | Purpose |
+| --- | --- | --- |
+| 443/udp | 443/udp | Client-to-server tunnel |
+| 18080/tcp | 18080/tcp | Example reverse TCP listener |
+| 15353/udp | 15353/udp | Example reverse UDP listener |
+
+Run the client separately using the [SOCKS5](#socks5-proxy) or [reverse mapping](#reverse-tcp-and-udp-mapping) configuration. Its `server` address uses the Docker host's address and published UDP tunnel port. Reverse mappings are still registered by the client; publishing a Docker port alone does not create a reverse listener.
+
+For the example client mappings, keep `reverseTCP[].listen: 0.0.0.0:18080` and `reverseUDP[].listen: 0.0.0.0:15353`. These are container addresses and ports. Add a matching `ports` entry, including `/tcp` or `/udp`, for each additional reverse listener. If you change only the published host port, the container-side listener stays unchanged.
+
+When using SOCKS5 or fixed forwarding, destinations are reached from the container's network; `127.0.0.1` refers to the container itself.
+
+Common commands:
+
+```bash
+# Show service status
+docker compose ps
+# Recreate after editing config.yaml
+docker compose up -d --force-recreate
+# Rebuild after updating source
+docker compose up -d --build
+# Stop and remove containers; config.yaml remains on the host
+docker compose down
+```

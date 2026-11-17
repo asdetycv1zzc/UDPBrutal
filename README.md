@@ -55,6 +55,24 @@
 
 ---
 
+### Docker Compose
+
+Copy the server configuration from the repository root:
+
+```bash
+cp examples/server.yaml config.yaml
+```
+
+Edit `config.yaml` and use the same `auth` value on the client, then start the server:
+
+```bash
+docker compose up -d --build
+```
+
+The example publishes UDP `443`, reverse TCP `18080`, and reverse UDP `15353`. See the [English](docs/README.md#docker-compose) or [中文](docs/README.zh.md#docker-compose) guide for client mappings, logs, and shutdown.
+
+---
+
 UDPBrutal uses its own wire protocol and does not interoperate with Hysteria2. Source attribution and implementation boundaries are documented in [NOTICE.md](NOTICE.md).
 
 Builds are manual. Runtime behavior has not yet been verified end to end; see the [validation scope](docs/README.md#validation-scope).

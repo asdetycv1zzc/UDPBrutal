@@ -146,16 +146,51 @@ UDP 应用数据也通过可靠流承载，因此隧道丢包会引起重传和�
 
 按项目要求，此版本不新增或运行功能测试，当前不执行跨平台构建。已完成的本机编译和静态审查不替代端到端验证；真实代理流量、丢包网络及多来源运行行为尚未验证。
 
-## Docker
+## Docker Compose
+
+需要安装 Docker 和 Compose v2，并使用 Linux 容器。仓库提供的 [docker-compose.yml](../docker-compose.yml) 通过已有 Dockerfile 启动 UDPBrutal **服务器**，使用默认桥接网络。
+
+先在仓库根目录准备配置：
 
 ```bash
-docker build -t udpbrutal .
-docker run --rm --network host \
-  -v "$PWD/server.yaml:/etc/udpbrutal/config.yaml:ro" \
-  udpbrutal
+cp examples/server.yaml config.yaml
 ```
 
-上例使用 Linux host 网络，让反向 TCP 和 UDP 监听地址直接对应宿主机；采用 bridge 网络时，需分别发布隧道端口和所有映射端口，并区分 /tcp、/udp。
+编辑 `config.yaml`，让服务器的 `auth.password` 与客户端的 `auth` 一致。使用默认端口映射时保留 `listen: :443`；示例配置已启用 TCP 和 UDP 反向监听。
+
+准备好后构建镜像并启动：
+
+```bash
+docker compose up -d --build
+docker compose logs -f udpbrutal
+```
+
+首次启动会为 Docker 引擎的本机平台构建镜像，无需预先发布的镜像。宿主机的 `config.yaml` 以只读方式挂载到容器的 `/etc/udpbrutal/config.yaml`；启动前必须先创建该文件。
+
+| 宿主机端口 | 容器端口 | 用途 |
+| --- | --- | --- |
+| 443/udp | 443/udp | 客户端连接服务器的隧道 |
+| 18080/tcp | 18080/tcp | 示例 TCP 反向监听 |
+| 15353/udp | 15353/udp | 示例 UDP 反向监听 |
+
+客户端仍按前面的 SOCKS5 或反向映射示例单独运行。`server` 填写 Docker 宿主机的地址和对外发布的隧道 UDP 端口。反向监听由客户端注册，仅在 Docker 中发布端口不会自动创建反向映射。
+
+示例客户端中的 `reverseTCP[].listen` 保持 `0.0.0.0:18080`，`reverseUDP[].listen` 保持 `0.0.0.0:15353`，它们表示容器内的监听地址和端口。新增反向端口时，需在 Compose 的 `ports` 中追加对应的 `/tcp` 或 `/udp` 映射；仅修改宿主机端口时，容器内的监听端口不变。
+
+使用 SOCKS5 或固定正向转发时，目标地址从容器网络访问，其中 `127.0.0.1` 表示容器本身。
+
+常用管理命令：
+
+```bash
+# 查看服务状态
+docker compose ps
+# 修改 config.yaml 后重新创建容器
+docker compose up -d --force-recreate
+# 更新源码后重新构建并启动
+docker compose up -d --build
+# 停止并移除容器，宿主机上的 config.yaml 会保留
+docker compose down
+```
 
 ## 许可
 

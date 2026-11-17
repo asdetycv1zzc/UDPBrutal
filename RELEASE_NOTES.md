@@ -1,5 +1,5 @@
-UDPBrutal 提供明文 UDP 隧道、Hysteria2 Brutal 拥塞控制、本地 SOCKS5（TCP/UDP）、正向 TCP/UDP 和反向 TCP/UDP 端口映射。
+UDPBrutal 已改为直接使用固定版本的 Hysteria2 核心和其 QUIC 连接引擎，保留 ACK/丢包处理、重传、流控、拥塞控制、路径 MTU 探测和 DATAGRAM。原自制可靠 UDP、固定外层 1200 字节上限及 yamux 已移除。
 
-代码兼顾 Linux、macOS 和 Windows 的 amd64/arm64；发行归档只在手动选择平台并触发工作流后产生。当前源码提交不自动构建或发布。配置与安装步骤见 README.md 及 examples/。
+明文握手与包保护替换是独立传输配置，不提供标准 QUIC 或原版 HY2 互通。正向 SOCKS5/TCP/UDP 使用 HY2 核心代码；反向 TCP/UDP 基于原生流和 DATAGRAM 扩展。
 
-本项目使用独立明文协议，不与 Hysteria2 客户端或服务端互通。构建流程只执行编译和静态检查，不运行功能测试。此版本的实际代理流量与网络异常行为尚未经过端到端验证。
+源码要求 Go 1.26；构建与发布工作流仍仅手动触发。本次传输重构未编译、构建或进行端到端验证。来源、逐文件哈希和必要改动见 NOTICE.md 与 third_party/UPSTREAM_FILES.json。

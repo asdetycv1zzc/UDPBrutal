@@ -1,6 +1,6 @@
 listen: :443
 
-# 与客户端 auth 一致；此字段原样明文传输，不做哈希或加密。
+# 与客户端 auth 一致；HTTP/3 认证消息通过明文传输配置发送。
 auth:
   type: password
   password: example-password
@@ -12,16 +12,21 @@ bandwidth:
 
 transport:
   type: udp
-  udp:
-    idleTimeout: 30s
-    handshakeTimeout: 5s
-    maxSessions: 128
 
-# 允许客户端在服务器上注册 TCP 和 UDP 监听端口。
+# 与固定 HY2 版本相同的流控、超时与路径 MTU 选项。
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  maxIncomingStreams: 1024
+  disablePathMTUDiscovery: false
+
+# 基于原生双向流和 DATAGRAM 的反向映射扩展。
 reverse:
   enabled: true
   maxListeners: 16
 
-# 控制正向 SOCKS5 UDP 和 udpForwarding；不控制 reverseUDP。
 disableUDP: false
 udpIdleTimeout: 60s

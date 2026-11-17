@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asdetycv1zzc/UDPBrutal/internal/transport"
+	"github.com/apernet/hysteria/core/v2/extension"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,14 +22,24 @@ type Bandwidth struct {
 	Down                    string `yaml:"down"`
 	DisableLossCompensation bool   `yaml:"disableLossCompensation"`
 }
-type UDP struct {
-	IdleTimeout      time.Duration `yaml:"idleTimeout"`
-	HandshakeTimeout time.Duration `yaml:"handshakeTimeout"`
-	MaxSessions      int           `yaml:"maxSessions"`
+type Congestion struct {
+	Type       string `yaml:"type"`
+	BBRProfile string `yaml:"bbrProfile"`
 }
 type Transport struct {
 	Type string `yaml:"type"`
-	UDP  UDP    `yaml:"udp"`
+}
+type QUIC struct {
+	InitStreamReceiveWindow uint64        `yaml:"initStreamReceiveWindow"`
+	MaxStreamReceiveWindow  uint64        `yaml:"maxStreamReceiveWindow"`
+	InitConnReceiveWindow   uint64        `yaml:"initConnReceiveWindow"`
+	MaxConnReceiveWindow    uint64        `yaml:"maxConnReceiveWindow"`
+	MaxIdleTimeout          time.Duration `yaml:"maxIdleTimeout"`
+	KeepAlivePeriod         time.Duration `yaml:"keepAlivePeriod"`
+	MaxIncomingStreams      int64         `yaml:"maxIncomingStreams"`
+	DisablePathMTUDiscovery bool          `yaml:"disablePathMTUDiscovery"`
+	DisableGSO              bool          `yaml:"disableGSO"`
+	DisableStatelessReset   bool          `yaml:"disableStatelessReset"`
 }
 type SOCKS5 struct {
 	Listen     string `yaml:"listen"`
@@ -43,15 +53,18 @@ type Forward struct {
 	Timeout time.Duration `yaml:"timeout" json:"timeout,omitempty"`
 }
 type Client struct {
-	Server        string    `yaml:"server"`
-	Auth          string    `yaml:"auth"`
-	Bandwidth     Bandwidth `yaml:"bandwidth"`
-	Transport     Transport `yaml:"transport"`
-	SOCKS5        SOCKS5    `yaml:"socks5"`
-	TCPForwarding []Forward `yaml:"tcpForwarding"`
-	UDPForwarding []Forward `yaml:"udpForwarding"`
-	ReverseTCP    []Forward `yaml:"reverseTCP"`
-	ReverseUDP    []Forward `yaml:"reverseUDP"`
+	Server        string     `yaml:"server"`
+	Auth          string     `yaml:"auth"`
+	Bandwidth     Bandwidth  `yaml:"bandwidth"`
+	Congestion    Congestion `yaml:"congestion"`
+	Transport     Transport  `yaml:"transport"`
+	QUIC          QUIC       `yaml:"quic"`
+	FastOpen      bool       `yaml:"fastOpen"`
+	SOCKS5        SOCKS5     `yaml:"socks5"`
+	TCPForwarding []Forward  `yaml:"tcpForwarding"`
+	UDPForwarding []Forward  `yaml:"udpForwarding"`
+	ReverseTCP    []Forward  `yaml:"reverseTCP"`
+	ReverseUDP    []Forward  `yaml:"reverseUDP"`
 }
 type Auth struct {
 	Type     string `yaml:"type"`
@@ -62,66 +75,68 @@ type Reverse struct {
 	MaxListeners int  `yaml:"maxListeners"`
 }
 type Server struct {
-	Listen         string        `yaml:"listen"`
-	Auth           Auth          `yaml:"auth"`
-	Bandwidth      Bandwidth     `yaml:"bandwidth"`
-	Transport      Transport     `yaml:"transport"`
-	Reverse        Reverse       `yaml:"reverse"`
-	DisableUDP     bool          `yaml:"disableUDP"`
-	UDPIdleTimeout time.Duration `yaml:"udpIdleTimeout"`
+	Listen                string        `yaml:"listen"`
+	Auth                  Auth          `yaml:"auth"`
+	Bandwidth             Bandwidth     `yaml:"bandwidth"`
+	Congestion            Congestion    `yaml:"congestion"`
+	Transport             Transport     `yaml:"transport"`
+	QUIC                  QUIC          `yaml:"quic"`
+	Reverse               Reverse       `yaml:"reverse"`
+	IgnoreClientBandwidth bool          `yaml:"ignoreClientBandwidth"`
+	DisableUDP            bool          `yaml:"disableUDP"`
+	UDPIdleTimeout        time.Duration `yaml:"udpIdleTimeout"`
 }
 
-// ParseBandwidth uses the same decimal bit/s convention as Hysteria2.
 func ParseBandwidth(s string) (uint64, error) {
 	if strings.TrimSpace(s) == "" {
 		return 0, nil
 	}
 	s = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(s), " ", ""))
-	multipliers := []struct {
-		suffix     string
-		multiplier float64
-	}{{"tbps", 1e12}, {"gbps", 1e9}, {"mbps", 1e6}, {"kbps", 1e3}, {"bps", 1}}
-	for _, m := range multipliers {
-		if strings.HasSuffix(s, m.suffix) {
-			n, err := strconv.ParseFloat(strings.TrimSuffix(s, m.suffix), 64)
-			bps := n * m.multiplier / 8
-			if err != nil || math.IsNaN(bps) || math.IsInf(bps, 0) || bps < 1 || bps > 1<<40 {
+	for _, unit := range []struct {
+		suffix string
+		factor float64
+	}{{"tbps", 1e12}, {"gbps", 1e9}, {"mbps", 1e6}, {"kbps", 1e3}, {"bps", 1}} {
+		if strings.HasSuffix(s, unit.suffix) {
+			n, err := strconv.ParseFloat(strings.TrimSuffix(s, unit.suffix), 64)
+			bps := n * unit.factor / 8
+			if err != nil || math.IsNaN(bps) || math.IsInf(bps, 0) || bps < 1 || bps >= float64(math.MaxInt64) {
 				return 0, fmt.Errorf("invalid bandwidth %q", s)
 			}
 			return uint64(bps), nil
 		}
 	}
-	return 0, fmt.Errorf("bandwidth %q needs bps/kbps/mbps/gbps/tbps", s)
+	return 0, fmt.Errorf("bandwidth %q requires bps/kbps/mbps/gbps/tbps", s)
 }
-
-func Options(b Bandwidth, t Transport, auth string) (transport.Options, error) {
-	if t.Type != "" && t.Type != "udp" {
-		return transport.Options{}, errors.New("transport.type must be udp")
-	}
+func BandwidthBytes(b Bandwidth) (uint64, uint64, error) {
 	up, err := ParseBandwidth(b.Up)
 	if err != nil {
-		return transport.Options{}, err
-	}
-	if up == 0 {
-		up = 12500000
+		return 0, 0, err
 	}
 	down, err := ParseBandwidth(b.Down)
-	if err != nil {
-		return transport.Options{}, err
+	return up, down, err
+}
+func validateCommon(b Bandwidth, t Transport, q QUIC, c Congestion) error {
+	if t.Type != "" && t.Type != "udp" {
+		return errors.New("transport.type must be udp")
 	}
-	if len(auth) > 512 {
-		return transport.Options{}, errors.New("auth must be at most 512 bytes")
+	if _, _, err := BandwidthBytes(b); err != nil {
+		return err
 	}
-	if t.UDP.IdleTimeout != 0 && t.UDP.IdleTimeout < 5*time.Second {
-		return transport.Options{}, errors.New("idleTimeout must be at least 5s")
+	if q.MaxIdleTimeout != 0 && (q.MaxIdleTimeout < 4*time.Second || q.MaxIdleTimeout > 120*time.Second) {
+		return errors.New("quic.maxIdleTimeout must be between 4s and 120s")
 	}
-	if t.UDP.HandshakeTimeout < 0 {
-		return transport.Options{}, errors.New("handshakeTimeout must be positive")
+	if q.KeepAlivePeriod != 0 && (q.KeepAlivePeriod < 2*time.Second || q.KeepAlivePeriod > 60*time.Second) {
+		return errors.New("quic.keepAlivePeriod must be between 2s and 60s")
 	}
-	if t.UDP.MaxSessions < 0 || t.UDP.MaxSessions > 4096 {
-		return transport.Options{}, errors.New("maxSessions must be in 1..4096")
+	for _, n := range []uint64{q.InitStreamReceiveWindow, q.MaxStreamReceiveWindow, q.InitConnReceiveWindow, q.MaxConnReceiveWindow} {
+		if n != 0 && n < 16384 {
+			return errors.New("QUIC receive windows must be at least 16384")
+		}
 	}
-	return transport.Options{Auth: auth, SendBPS: up, ReceiveBPS: down, DisableLossCompensation: b.DisableLossCompensation, IdleTimeout: t.UDP.IdleTimeout, HandshakeTimeout: t.UDP.HandshakeTimeout, MaxSessions: t.UDP.MaxSessions}, nil
+	if q.MaxIncomingStreams != 0 && q.MaxIncomingStreams < 8 {
+		return errors.New("quic.maxIncomingStreams must be at least 8")
+	}
+	return extension.ValidateCongestion(c.Type, c.BBRProfile)
 }
 func checkAddress(addr string) error {
 	_, port, err := net.SplitHostPort(addr)
@@ -139,8 +154,9 @@ func checkTarget(addr string) error {
 		return err
 	}
 	host, port, _ := net.SplitHostPort(addr)
-	if host == "" || port == "0" {
-		return errors.New("target requires a host and a nonzero port")
+	n, _ := strconv.Atoi(port)
+	if host == "" || n == 0 {
+		return errors.New("target requires a host and nonzero port")
 	}
 	return nil
 }
@@ -149,13 +165,13 @@ func (c *Client) Validate() error {
 		return errors.New("server is required")
 	}
 	if _, _, err := net.SplitHostPort(c.Server); err != nil {
-		if strings.Contains(c.Server, ":") && net.ParseIP(c.Server) == nil {
-			return fmt.Errorf("invalid server: %w", err)
+		if strings.Contains(c.Server, ":") && net.ParseIP(strings.Trim(c.Server, "[]")) == nil {
+			return fmt.Errorf("server: %w", err)
 		}
 		c.Server = net.JoinHostPort(strings.Trim(c.Server, "[]"), "443")
 	}
 	if err := checkTarget(c.Server); err != nil {
-		return fmt.Errorf("server: %w", err)
+		return err
 	}
 	if c.SOCKS5.Listen == "" && len(c.TCPForwarding)+len(c.UDPForwarding)+len(c.ReverseTCP)+len(c.ReverseUDP) == 0 {
 		return errors.New("configure socks5 or a forwarding mode")
@@ -166,7 +182,7 @@ func (c *Client) Validate() error {
 		}
 	}
 	if (c.SOCKS5.Username == "") != (c.SOCKS5.Password == "") {
-		return errors.New("socks5 username and password must be supplied together")
+		return errors.New("SOCKS5 username and password must be supplied together")
 	}
 	if len(c.SOCKS5.Username) > 255 || len(c.SOCKS5.Password) > 255 {
 		return errors.New("SOCKS5 credentials exceed 255 bytes")
@@ -174,20 +190,21 @@ func (c *Client) Validate() error {
 	if len(c.ReverseTCP)+len(c.ReverseUDP) > 64 {
 		return errors.New("at most 64 reverse listeners")
 	}
-	forwards := append(append(append(append([]Forward{}, c.TCPForwarding...), c.UDPForwarding...), c.ReverseTCP...), c.ReverseUDP...)
-	for _, f := range forwards {
-		if err := checkAddress(f.Listen); err != nil {
-			return fmt.Errorf("listen %q: %w", f.Listen, err)
-		}
-		if err := checkTarget(f.Remote); err != nil {
-			return fmt.Errorf("remote %q: %w", f.Remote, err)
-		}
-		if f.Timeout < 0 || f.Timeout > 24*time.Hour {
-			return errors.New("forwarding timeout must be in 0..24h")
+	groups := [][]Forward{c.TCPForwarding, c.UDPForwarding, c.ReverseTCP, c.ReverseUDP}
+	for _, group := range groups {
+		for _, f := range group {
+			if err := checkAddress(f.Listen); err != nil {
+				return fmt.Errorf("listen %q: %w", f.Listen, err)
+			}
+			if err := checkTarget(f.Remote); err != nil {
+				return fmt.Errorf("remote %q: %w", f.Remote, err)
+			}
+			if f.Timeout < 0 || f.Timeout > 24*time.Hour {
+				return errors.New("forwarding timeout must be in 0..24h")
+			}
 		}
 	}
-	_, err := Options(c.Bandwidth, c.Transport, c.Auth)
-	return err
+	return validateCommon(c.Bandwidth, c.Transport, c.QUIC, c.Congestion)
 }
 func (s *Server) Validate() error {
 	if s.Listen == "" {
@@ -196,7 +213,9 @@ func (s *Server) Validate() error {
 	if err := checkAddress(s.Listen); err != nil {
 		return err
 	}
-	if s.Auth.Type != "" && s.Auth.Type != "password" && s.Auth.Type != "none" {
+	switch s.Auth.Type {
+	case "", "password", "none":
+	default:
 		return errors.New("auth.type must be password or none")
 	}
 	if s.Auth.Type == "password" && s.Auth.Password == "" {
@@ -214,13 +233,18 @@ func (s *Server) Validate() error {
 	if s.UDPIdleTimeout == 0 {
 		s.UDPIdleTimeout = 60 * time.Second
 	}
-	if s.UDPIdleTimeout < time.Second {
-		return errors.New("udpIdleTimeout must be at least 1s")
+	if s.UDPIdleTimeout < 2*time.Second || s.UDPIdleTimeout > 600*time.Second {
+		return errors.New("udpIdleTimeout must be between 2s and 600s")
 	}
-	_, err := Options(s.Bandwidth, s.Transport, s.Auth.Password)
-	return err
+	up, down, err := BandwidthBytes(s.Bandwidth)
+	if err != nil {
+		return err
+	}
+	if (up != 0 && up < 65536) || (down != 0 && down < 65536) {
+		return errors.New("server bandwidth must be at least 65536 bytes/s when set")
+	}
+	return validateCommon(s.Bandwidth, s.Transport, s.QUIC, s.Congestion)
 }
-
 func Find(path string) (string, error) {
 	if path != "" {
 		return path, nil

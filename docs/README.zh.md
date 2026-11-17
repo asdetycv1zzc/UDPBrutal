@@ -6,7 +6,7 @@
 
 Brutal 和 pacer 直接取自 [指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)，仅替换 import 路径；完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
 
-这是独立明文协议，**不能与 Hysteria2 客户端或服务器互通**。Hysteria2 的 QUIC/TLS 承载被可靠 UDP 和 yamux 流复用替代，命令、配置及安装布局参考 Hysteria2。反向端口映射是沿用其双向流转发思路实现的项目扩展。
+当前直接使用固定版本的 Hysteria2 核心与 QUIC 引擎，保留原生流、DATAGRAM、确认/丢包处理、重传、流控和路径 MTU 探测，仅替换为明文握手和无包保护配置。**不能与未经修改的 Hysteria2 客户端或服务器互通**。反向端口映射是基于原生双向流和 DATAGRAM 的项目扩展。
 
 ## 功能
 
@@ -16,11 +16,11 @@ Brutal 和 pacer 直接取自 [指定的 Hysteria 源码](https://github.com/HyN
 | tcpForwarding / udpForwarding | 客户端 | 服务器访问固定目标 | TCP / UDP |
 | reverseTCP / reverseUDP | 服务器 | 客户端访问本地或内网服务 | TCP / UDP |
 
-TCP 支持半关闭；UDP 保留数据报边界，按访问来源分配独立会话和目标 UDP socket，默认空闲 60 秒回收。多个本地代理连接共享同一条隧道。隧道断开后客户端自动重连并重新注册反向监听；已有 TCP 连接不跨重连恢复。
+TCP 使用原生双向流；UDP 保留数据报边界，按访问来源分配独立会话和目标 UDP socket，默认空闲 60 秒回收。多个本地代理连接共享同一条隧道。隧道断开后客户端自动重连并重新注册反向监听；已有 TCP 连接不跨重连恢复。此次传输协议也与之前的 UB01 原型不兼容，升级时需同时更新 UDPBrutal 的客户端和服务器。
 
 ## 从源码安装
 
-需要 Go 1.23 或更新版本。当前仓库为私有仓库时，克隆或下载需使用有仓库权限的 GitHub 账户。
+需要 Go 1.26 或更新版本。当前仓库为私有仓库时，克隆或下载需使用有仓库权限的 GitHub 账户。
 
 ```bash
 git clone https://github.com/asdetycv1zzc/UDPBrutal.git
@@ -125,26 +125,30 @@ reverseUDP:
 | -c / --config | 指定 YAML 或 JSON；未指定时依次查找当前目录、~/.udpbrutal/、/etc/udpbrutal/ 中的 config.yaml、config.yml、config.json |
 | -l / --log-level；-f / --log-format | debug/info/warn/error；console/json。环境变量 UDPBRUTAL_LOG_LEVEL、UDPBRUTAL_LOG_FORMAT |
 | --disable-update-check | 为类似 Hysteria 的服务启动命令保留；本程序没有自动更新检查 |
-| bandwidth.up / down | 十进制 bps/kbps/mbps/gbps/tbps；up 为本端发送速率，down 为本端允许的对端发送速率；两端取较小值。up 省略时为 100 mbps，down 省略时不额外限制 |
+| bandwidth.up / down | 十进制 bps/kbps/mbps/gbps/tbps；up 为本端发送速率，down 为本端允许的对端发送速率；两端取较小值。未提供速率时按原 HY2 带宽协商及 BBR/Reno 回退逻辑处理，不再自行填充 100 mbps |
 | bandwidth.disableLossCompensation | 原 Brutal 开关；设为 true 时 ACK rate 固定为 1 |
 | transport.type | 仅 udp；省略也使用 udp |
-| transport.udp.idleTimeout | 隧道超时，默认 30s，最小 5s；每 2s keepalive |
-| transport.udp.handshakeTimeout | UDP 握手超时，默认 5s |
-| transport.udp.maxSessions | 服务器会话上限，默认 128 |
-| udpIdleTimeout | 服务器正向 UDP relay 空闲超时，默认 60s |
+| quic.maxIdleTimeout | 原 HY2 QUIC 空闲超时，默认 30s，范围 4s..120s |
+| quic.keepAlivePeriod | 客户端 keepalive，默认 10s，范围 2s..60s |
+| quic.maxIncomingStreams | 原生接收流数上限；服务器默认 1024，客户端配置反向 TCP 时也显式启用 |
+| quic.disablePathMTUDiscovery | 默认 false；使用上游路径 MTU 探测与平台支持判断 |
+| quic.initStreamReceiveWindow / maxStreamReceiveWindow | 原生流接收窗口，默认 8MB |
+| quic.initConnReceiveWindow / maxConnReceiveWindow | 原生连接接收窗口，默认 20MB |
+| congestion.type / bbrProfile | 交给上游的 BBR/Reno 选择与 BBR profile 校验；已知带宽时按原逻辑使用 Brutal |
+| udpIdleTimeout | 服务器正向 UDP relay 空闲超时，默认 60s，范围 2s..600s |
 | udpForwarding[].timeout / reverseUDP[].timeout | 对应 UDP 来源会话空闲超时，默认 60s，最大 24h |
 | disableUDP | 禁用服务器正向 UDP relay；reverseUDP 单独由 reverse.enabled 控制 |
 | HYSTERIA_BRUTAL_DEBUG / UDPBRUTAL_BRUTAL_DEBUG | 设为 true 输出原 Brutal 调试信息 |
 
-`tls`、`acme`、`obfs`、`quic`、HTTP 代理、TUN、透明代理、ACL、BBR 等 Hysteria2 配置不在实现范围内；未知配置字段会报错，不能直接复制一份完整 Hysteria2 配置使用。
+TLS、ACME 和混淆按明文要求排除。当前 CLI 暴露 SOCKS5、TCP/UDP 转发和反向扩展，尚未暴露 HTTP 代理、TUN、透明代理及 ACL 模式；QUIC 参数和 BBR/Reno 回退已使用原实现。未知配置字段会报错，不能直接复制完整 HY2 配置使用。旧自定义传输的 `transport.udp.idleTimeout` 应改为 `quic.maxIdleTimeout`；原 `handshakeTimeout`、`maxSessions` 删除，由 QUIC 引擎管理握手和流数量。
 
 ## 传输与验证范围
 
-Brutal 使用上游的 5 个一秒采样槽、50 个最小样本、0.8 ACK rate 下限、2 倍带宽时延积拥塞窗口，以及相同的 token bucket pacer。实际 UDP 包上限 1200 字节，数据包和重传包都经过 Brutal。可靠 UDP 采用选择确认、去重、重排、RTT/RTO 估计、指数退避及 512 包接收窗口；各发送/接收缓冲均有界。
+Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`，与固定上游字节一致，包括原始 import。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，不再使用自制可靠 UDP、512 包窗口或 yamux。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
 
-UDP 应用数据也通过可靠流承载，因此隧道丢包会引起重传和共享队头阻塞；它与 Hysteria2 的 QUIC DATAGRAM 延迟和丢包特性不同。未实现 MTU 探测、NAT 地址迁移、拥塞自适应算法或 Hysteria2 线协议兼容。
+UDP 恢复为原生不可靠 DATAGRAM，并使用 HY2 原始 UDPMessage、分片/重组和会话管理。外层 UDP 包不再固定封顶 1200 字节，使用上游初始包大小、EMSGSIZE 回退、对端限制和路径 MTU 探测；上游 `InitialPacketSize=1280`、QUIC 的 1200 字节最低要求、HY2 的 `MaxDatagramFrameSize=1200` 是不同概念。原 HY2 应用 UDP 缓冲 `MaxUDPSize=4096` 保留。TLS 相关握手、包保护、票据、0-RTT 密钥和指纹处理移除；无加密配置和反向扩展的必要差异见 [PROTOCOL.md](../PROTOCOL.md)。
 
-按项目要求，此版本不新增或运行功能测试，当前不执行跨平台构建。已完成的本机编译和静态审查不替代端到端验证；真实代理流量、丢包网络及多来源运行行为尚未验证。
+本次传输重构未进行编译、容器构建、跨平台构建或运行测试。仅进行了源码来源比对、语法/格式、依赖导入和静态审阅，这些不构成运行正确性证明。真实代理流量、丢包、重连和跨平台行为尚未验证。
 
 ## Docker Compose
 

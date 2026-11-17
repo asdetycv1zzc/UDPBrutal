@@ -8,33 +8,25 @@ import (
 	"net"
 	"time"
 
+	"github.com/apernet/quic-go"
+	"github.com/apernet/quic-go/quicvarint"
 	"github.com/asdetycv1zzc/UDPBrutal/internal/config"
-	"github.com/hashicorp/yamux"
 )
 
-type request struct {
-	Command    string           `json:"command"`
-	Address    string           `json:"address,omitempty"`
-	Index      int              `json:"index,omitempty"`
-	Reverse    []config.Forward `json:"reverse,omitempty"`
-	ReverseUDP []config.Forward `json:"reverseUDP,omitempty"`
+const reverseControlType uint64 = 0x554201
+const reverseTCPType uint64 = 0x554202
+
+type registration struct {
+	TCP []config.Forward `json:"tcp,omitempty"`
+	UDP []config.Forward `json:"udp,omitempty"`
 }
-type response struct {
-	OK           bool     `json:"ok"`
-	Error        string   `json:"error,omitempty"`
-	Addresses    []string `json:"addresses,omitempty"`
-	UDPAddresses []string `json:"udpAddresses,omitempty"`
+type registrationReply struct {
+	OK    bool     `json:"ok"`
+	Error string   `json:"error,omitempty"`
+	TCP   []string `json:"tcp,omitempty"`
+	UDP   []string `json:"udp,omitempty"`
 }
 
-func muxConfig() *yamux.Config {
-	c := yamux.DefaultConfig()
-	c.LogOutput = io.Discard
-	c.ConnectionWriteTimeout = 15 * time.Second
-	c.StreamOpenTimeout = 10 * time.Second
-	c.StreamCloseTimeout = 5 * time.Minute
-	c.MaxStreamWindowSize = 1 << 20
-	return c
-}
 func writeFull(w io.Writer, b []byte) error {
 	for len(b) > 0 {
 		n, err := w.Write(b)
@@ -54,20 +46,20 @@ func writeMessage(w io.Writer, v any) error {
 		return err
 	}
 	if len(b) > 16384 {
-		return errors.New("control message too large")
+		return errors.New("reverse control message too large")
 	}
-	h := make([]byte, 4)
-	binary.BigEndian.PutUint32(h, uint32(len(b)))
-	return writeFull(w, append(h, b...))
+	var header [4]byte
+	binary.BigEndian.PutUint32(header[:], uint32(len(b)))
+	return writeFull(w, append(header[:], b...))
 }
 func readMessage(r io.Reader, v any) error {
-	var h [4]byte
-	if _, err := io.ReadFull(r, h[:]); err != nil {
+	var header [4]byte
+	if _, err := io.ReadFull(r, header[:]); err != nil {
 		return err
 	}
-	n := binary.BigEndian.Uint32(h[:])
+	n := binary.BigEndian.Uint32(header[:])
 	if n == 0 || n > 16384 {
-		return errors.New("invalid control message length")
+		return errors.New("invalid reverse control message length")
 	}
 	b := make([]byte, n)
 	if _, err := io.ReadFull(r, b); err != nil {
@@ -75,37 +67,28 @@ func readMessage(r io.Reader, v any) error {
 	}
 	return json.Unmarshal(b, v)
 }
-func open(session *yamux.Session, req request) (*yamux.Stream, error) {
-	s, err := session.OpenStream()
-	if err != nil {
-		return nil, err
-	}
-	_ = s.SetDeadline(time.Now().Add(10 * time.Second))
-	if err = writeMessage(s, req); err != nil {
-		_ = s.Close()
-		return nil, err
-	}
-	var reply response
-	if err = readMessage(s, &reply); err != nil {
-		_ = s.Close()
-		return nil, err
-	}
-	if !reply.OK {
-		_ = s.Close()
-		return nil, errors.New(reply.Error)
-	}
-	_ = s.SetDeadline(time.Time{})
-	return s, nil
+
+type streamConn struct {
+	stream *quic.Stream
+	conn   *quic.Conn
 }
+
+func (c *streamConn) Read(b []byte) (int, error)         { return c.stream.Read(b) }
+func (c *streamConn) Write(b []byte) (int, error)        { return c.stream.Write(b) }
+func (c *streamConn) Close() error                       { c.stream.CancelRead(0); return c.stream.Close() }
+func (c *streamConn) CloseWrite() error                  { return c.stream.Close() }
+func (c *streamConn) LocalAddr() net.Addr                { return c.conn.LocalAddr() }
+func (c *streamConn) RemoteAddr() net.Addr               { return c.conn.RemoteAddr() }
+func (c *streamConn) SetDeadline(t time.Time) error      { return c.stream.SetDeadline(t) }
+func (c *streamConn) SetReadDeadline(t time.Time) error  { return c.stream.SetReadDeadline(t) }
+func (c *streamConn) SetWriteDeadline(t time.Time) error { return c.stream.SetWriteDeadline(t) }
 func closeWrite(c net.Conn) {
-	if t, ok := c.(interface{ CloseWrite() error }); ok {
-		_ = t.CloseWrite()
+	if x, ok := c.(interface{ CloseWrite() error }); ok {
+		_ = x.CloseWrite()
 	} else {
 		_ = c.Close()
 	}
 }
-
-// relay preserves TCP half-close: EOF on a request must not truncate its reply.
 func relay(a, b net.Conn) {
 	defer a.Close()
 	defer b.Close()
@@ -121,29 +104,13 @@ func relay(a, b net.Conn) {
 	}
 	<-done
 }
-func writeDatagram(w io.Writer, address string, payload []byte) error {
-	if len(address) > 512 || len(payload) > 65507 {
-		return errors.New("UDP datagram too large")
-	}
-	b := make([]byte, 4+len(address)+len(payload))
-	binary.BigEndian.PutUint16(b, uint16(len(address)))
-	binary.BigEndian.PutUint16(b[2:], uint16(len(payload)))
-	copy(b[4:], address)
-	copy(b[4+len(address):], payload)
-	return writeFull(w, b)
+func writeFrameType(w io.Writer, kind uint64) error {
+	return writeFull(w, quicvarint.Append(nil, kind))
 }
-func readDatagram(r io.Reader) (string, []byte, error) {
-	var h [4]byte
-	if _, err := io.ReadFull(r, h[:]); err != nil {
-		return "", nil, err
+func readFrameType(r io.Reader) (uint64, error) { return quicvarint.Read(quicvarint.NewReader(r)) }
+func udpTimeout(t time.Duration) time.Duration {
+	if t <= 0 {
+		return 60 * time.Second
 	}
-	al, pl := int(binary.BigEndian.Uint16(h[:2])), int(binary.BigEndian.Uint16(h[2:]))
-	if al == 0 || al > 512 || pl > 65507 {
-		return "", nil, errors.New("invalid UDP datagram length")
-	}
-	b := make([]byte, al+pl)
-	if _, err := io.ReadFull(r, b); err != nil {
-		return "", nil, err
-	}
-	return string(b[:al]), b[al:], nil
+	return t
 }

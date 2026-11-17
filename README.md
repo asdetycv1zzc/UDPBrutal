@@ -4,7 +4,7 @@
 
 [1]: https://img.shields.io/badge/license-MIT-blue
 [2]: LICENSE
-[3]: https://img.shields.io/badge/Go-1.23%2B-00ADD8?style=flat-square
+[3]: https://img.shields.io/badge/Go-1.26%2B-00ADD8?style=flat-square
 [4]: go.mod
 [5]: https://img.shields.io/badge/docs-get%20started-blue?style=flat-square
 [6]: docs/README.md
@@ -34,7 +34,7 @@
 
   <div>
     <h3>⚡ Brutal at its core</h3>
-    <p>The original Hysteria2 Brutal controller and pacer, with configurable bandwidth and ACK-rate loss compensation.</p>
+    <p>The pinned Hysteria2 core, Brutal controller and pacer, with native streams, DATAGRAMs, flow control and path MTU discovery.</p>
   </div>
 
   <div>
@@ -44,7 +44,7 @@
 
   <div>
     <h3>🔓 Plaintext by design</h3>
-    <p>A standalone UDP transport without TLS, certificates, encryption, or obfuscation. Authentication strings and tunnel payloads travel in plaintext.</p>
+    <p>A plaintext profile of Hysteria2's QUIC engine, without TLS, certificates, packet encryption, or obfuscation.</p>
   </div>
 
   <div>
@@ -73,8 +73,8 @@ The example publishes UDP `443`, reverse TCP `18080`, and reverse UDP `15353`. S
 
 ---
 
-UDPBrutal uses its own wire protocol and does not interoperate with Hysteria2. Source attribution and implementation boundaries are documented in [NOTICE.md](NOTICE.md).
+UDPBrutal uses a dedicated plaintext handshake and packet profile and does not interoperate with unmodified Hysteria2. Source attribution and implementation boundaries are documented in [NOTICE.md](NOTICE.md).
 
-Builds are manual. Runtime behavior has not yet been verified end to end; see the [validation scope](docs/README.md#validation-scope).
+Builds are manual. This transport rewrite has not been compiled or run; see the [validation scope](docs/README.md#validation-scope).
 
 **⭐ Star UDPBrutal if it helps your project.**

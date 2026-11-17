@@ -1,0 +1,1500 @@
+[
+  {
+    "path": "third_party/quic-go/interface.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "interface.go",
+    "sha256": "d09afcc39fce10a8ad8e5286f10cc5a50dc66ff4f51b344e4164df1668d44d84"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_helper_freebsd.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_helper_freebsd.go",
+    "sha256": "637c18c2b61f972a5b1b1dbc7126e4c3f6e96144a8cd347fc37f15c3eaa3d810"
+  },
+  {
+    "path": "third_party/quic-go/streams_map_incoming.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "streams_map_incoming.go",
+    "sha256": "8fd28815371e47744a83f76af2bfcaf1eef32a799fc6dc77b8527649937c8df3"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn.go",
+    "sha256": "ea8f4ca9d9bd3d7f4cefa8961881e68c3fc8dcd6a992c6b45bdda64bd7751cfe"
+  },
+  {
+    "path": "third_party/quic-go/closed_conn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "closed_conn.go",
+    "sha256": "6062abca163d3eaa4034672990b9b70727128e54ba41879c5e0a8b488eb9bd97"
+  },
+  {
+    "path": "third_party/quic-go/errors.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "errors.go",
+    "sha256": "a0d3274aa6df245c8f5dde1684e79f66f5827acd9407222e1a2299fbdc51cab6"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_helper_nonlinux.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_helper_nonlinux.go",
+    "sha256": "4239fd611f7e941ad93f6137f1d37f8f7d2a629482ae53d08321801e13b3d046"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers_write.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers_write.go",
+    "sha256": "8aeb769e3f91d659fe7ae0527966fca2745a88a915e059226043bb17a38da611"
+  },
+  {
+    "path": "third_party/quic-go/flow_controller_connection.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "flow_controller_connection.go",
+    "sha256": "90b21ee95c13f3c5a6aa2e517060145e24c9e3927acce8d510472533a0643d47"
+  },
+  {
+    "path": "third_party/quic-go/go.mod",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "go.mod",
+    "sha256": "9cf83969631e2649f11dc81b5e72304c2cc87bc64d38b3197bc06141f0735f67"
+  },
+  {
+    "path": "third_party/quic-go/conn_id_generator.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "conn_id_generator.go",
+    "sha256": "ce8e230a640fe0f0da871b28041a481198a0c0204d62ed6a20d8944a0955004f"
+  },
+  {
+    "path": "third_party/quic-go/retransmission_queue.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "retransmission_queue.go",
+    "sha256": "7068393cd332a191c6342a1804e36c4c23d5c89f9476347558eb0b10a3607321"
+  },
+  {
+    "path": "third_party/quic-go/packet_unpacker.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "packet_unpacker.go",
+    "sha256": "3a7ebd2a83ed88266a9e5673299b090ff5b6ecde904ac8abd4bf128749a881c4"
+  },
+  {
+    "path": "third_party/quic-go/received_packet_queue.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "received_packet_queue.go",
+    "sha256": "a3d737665e0bb2ca8095e2a27945dad58828a406307d1d933b543c846170c6f1"
+  },
+  {
+    "path": "third_party/quic-go/chrome_parrot.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "chrome_parrot.go",
+    "sha256": "2823ab88de0612a47663a5482c49817131fe83fc378dfd55431d7d5461a4fd9f"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers_inspect_stub.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers_inspect_stub.go",
+    "sha256": "4da63a2a4e08a85c3f44152014356f25b15b361a8e04bcdbb063699b0caf8522"
+  },
+  {
+    "path": "third_party/quic-go/receive_stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "receive_stream.go",
+    "sha256": "a9acc7f9d90227922c90f3173bcc1c9e57d4dde9071b063e96eeb0930432c89a"
+  },
+  {
+    "path": "third_party/quic-go/connection_logging.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "connection_logging.go",
+    "sha256": "381a79b5cc1ec079315933bb0580a38515fff5b4166486a71cbc2e7c359d39ca"
+  },
+  {
+    "path": "third_party/quic-go/conn_id_manager.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "conn_id_manager.go",
+    "sha256": "b051ff3cb89ef82fbb1eb21af6e65014e90b362565fa884e6f00e193853d72bf"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_no_oob.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_no_oob.go",
+    "sha256": "880f6a5b3ea2b84247f14abba186840d4dff56dd8550b53c38ffbf905b7229e0"
+  },
+  {
+    "path": "third_party/quic-go/path_manager.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "path_manager.go",
+    "sha256": "63eabd667e8681a7339ac2e42c29ae90935b67c3a2ac538042483c9c492b3807"
+  },
+  {
+    "path": "third_party/quic-go/sni.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sni.go",
+    "sha256": "f64d71ab44b1a6a99d56abb50688e64536a2b919b35f070dece12dd258d59fda"
+  },
+  {
+    "path": "third_party/quic-go/config.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "config.go",
+    "sha256": "23f9c51efef4846a68f96ed382bc078867da417df6ffe3dc4d97aaecc4ab684a"
+  },
+  {
+    "path": "third_party/quic-go/streams_map_outgoing.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "streams_map_outgoing.go",
+    "sha256": "4796b66461a46a308e2242d084aca8635dd1fad6d02290e422a0d00417f9f83f"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_windows.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_windows.go",
+    "sha256": "993aabaa20c5ed51983149e6b409c053b1391bc50e72e76c333d54960c1a27be"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_df_linux.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_df_linux.go",
+    "sha256": "4cf01df2e3ebf2861410399826fcf0ba0dfa1f73f68b6f26124c5d90a0fde39e"
+  },
+  {
+    "path": "third_party/quic-go/stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "stream.go",
+    "sha256": "cca6bb363824b4f81a4f1567dd331bd0e948eae07b1394639a6d0617e40c8a26"
+  },
+  {
+    "path": "third_party/quic-go/buffer_pool.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "buffer_pool.go",
+    "sha256": "255887f3b6a4dc819027d5af5eb516ff6f7256d174de2da594a8a1e1eb4439fe"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers_inspect.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers_inspect.go",
+    "sha256": "a3520858017075c3077034071bf7464cd5e43b277d122bf55eea30b06f7bd49d"
+  },
+  {
+    "path": "third_party/quic-go/datagram_queue.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "datagram_queue.go",
+    "sha256": "1b67449144143ac0c8abe87507bdfe64f736168ed9a5819deb6ea927931e5e85"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_helper_darwin.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_helper_darwin.go",
+    "sha256": "b19686c17a8a9612c57c287589c188bf89fd6e5fc890fb6fff1360262d06fd83"
+  },
+  {
+    "path": "third_party/quic-go/stateless_reset.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "stateless_reset.go",
+    "sha256": "1fae7667ba8c12ca1843636679e84a8c23d68a9c2ebe816221d99591986e692d"
+  },
+  {
+    "path": "third_party/quic-go/framer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "framer.go",
+    "sha256": "854aef746fa03bb115470e66debb8bd463ff91f3edcdc57ed56a08480d4f2fad"
+  },
+  {
+    "path": "third_party/quic-go/client.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "client.go",
+    "sha256": "b2f07cfb4da1f169200da21da28a43e9e0c00cc1fe7ff2da1f10c670d92dab52"
+  },
+  {
+    "path": "third_party/quic-go/send_queue.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "send_queue.go",
+    "sha256": "cdb2905c1442662607ac4883288eb79ac66bac967f46e1121e3e0e6d02cdc70e"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers.go",
+    "sha256": "2a1d4fc6a22cde6872c03f6683e6dd68095bd9a03c4a4a9a5130d43e0f614663"
+  },
+  {
+    "path": "third_party/quic-go/packet_packer_chaos.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "packet_packer_chaos.go",
+    "sha256": "7e670ac2373716cde18a15d9d3c7e9b60544dae6b298155bc034a9df539dac1e"
+  },
+  {
+    "path": "third_party/quic-go/LICENSE",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "LICENSE",
+    "sha256": "77d0b7b53e8abb84cf4dd3f9945a7fdf27044240d2e8023966a721a9a46fe96e"
+  },
+  {
+    "path": "third_party/quic-go/crypto_stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "crypto_stream.go",
+    "sha256": "6c382fbcbe3149a26bc2d1527907d9e7482058d86b2358057222c664385001d4"
+  },
+  {
+    "path": "third_party/quic-go/frame_sorter.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "frame_sorter.go",
+    "sha256": "b1f90657f4b54965f40ab2d9ad6bd7f27a6d4f3b585449a0d96c771b8cb0867e"
+  },
+  {
+    "path": "third_party/quic-go/crypto_stream_manager.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "crypto_stream_manager.go",
+    "sha256": "56f5d82ee1eb720171d25029cc5b6981cf89e1b65a253c23f18b6b3695314495"
+  },
+  {
+    "path": "third_party/quic-go/mtu_discoverer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "mtu_discoverer.go",
+    "sha256": "257b6de2eb92137e45975b9317b173b71864d636062ac19eab8759a7761427fb"
+  },
+  {
+    "path": "third_party/quic-go/transport.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "transport.go",
+    "sha256": "0162f2f1e687bf9dec113730bc22fdc3ee178f78dddd11a8f7d544ac73055c66"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_df.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_df.go",
+    "sha256": "5a7954431a2ab54662ac707e1c497cc47055abb163e70911bd05280d39a16d69"
+  },
+  {
+    "path": "third_party/quic-go/server.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "server.go",
+    "sha256": "00f403db1fa6af16cd558f975138ab154f6213f28c29c6c67de88a82f630f4e2"
+  },
+  {
+    "path": "third_party/quic-go/flow_controller_base.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "flow_controller_base.go",
+    "sha256": "3475d2b69996afe6446494313c31cbb76d2ed8f7f2548cb4d2f704c8247e5f0c"
+  },
+  {
+    "path": "third_party/quic-go/streams_map.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "streams_map.go",
+    "sha256": "e3abab1973e269bd709b991189032cac2f96591f9b27d6d0112c88594a56a0f6"
+  },
+  {
+    "path": "third_party/quic-go/send_conn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "send_conn.go",
+    "sha256": "d3bb424d81a0d524991bf373de498b77c8e5cca5d4ef295dace0af8b9ed1dc01"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_oob.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_oob.go",
+    "sha256": "8875916f52411d9ef93e1c4a9ece50d127dcc56553473deb85772ade39d27097"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers_nonopenbsd.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers_nonopenbsd.go",
+    "sha256": "c9dcef66f9bdc92822b5dfc1d18e04354c48bfa6df6c45ecf62275566a428736"
+  },
+  {
+    "path": "third_party/quic-go/path_manager_outgoing.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "path_manager_outgoing.go",
+    "sha256": "e98b016620b46a9badaa94572a7254f19154d7029aa93d45f86585b649128513"
+  },
+  {
+    "path": "third_party/quic-go/token_store.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "token_store.go",
+    "sha256": "255c73913c345200e9e78c4584dcf9f767489624f0a145b8354d75d396db3c73"
+  },
+  {
+    "path": "third_party/quic-go/packet_packer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "packet_packer.go",
+    "sha256": "80adfe7a6f04367f59741fd8c088d52f9fd91d9c4a6b493fd4343751288c57bb"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_df_windows.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_df_windows.go",
+    "sha256": "b542749505abada63e0055472afc99c9469a7508168935cdeaad5592d20c49a9"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_helper_linux.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_helper_linux.go",
+    "sha256": "2b5ac0835682c4d4a1e92ea1b903095c72fa9203782613514699ed36d00be333"
+  },
+  {
+    "path": "third_party/quic-go/flow_controller_stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "flow_controller_stream.go",
+    "sha256": "cec3dbafc7e1ee95ac3c9861fcd6c83079a9fa070d639095f0a9f6978598623a"
+  },
+  {
+    "path": "third_party/quic-go/send_stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "send_stream.go",
+    "sha256": "cbe4e18a1346b037861ba4f96650de1752e2947b4c9c3f1144e97b8a9f908fb2"
+  },
+  {
+    "path": "third_party/quic-go/go.sum",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "go.sum",
+    "sha256": "f6a23158ae0479a5ec5c0be4c581257e54ac71fc29108d8f200c7ddcde29fc4e"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_df_darwin.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_df_darwin.go",
+    "sha256": "02f23b2752490a1098c9ed676be4d9a9d2907ed4b6ab2486df5131e3d2977b40"
+  },
+  {
+    "path": "third_party/quic-go/connection.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "connection.go",
+    "sha256": "89cdb4b465e0d45bf1ce5f878bc014188ed986639f6f2142cedb28b3d4ac7ee7"
+  },
+  {
+    "path": "third_party/quic-go/sys_conn_buffers_openbsd.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "sys_conn_buffers_openbsd.go",
+    "sha256": "ea05bcaa7612e6be270833d546ae186093785c1e763b0b81455e2f37c81d2a37"
+  },
+  {
+    "path": "third_party/quic-go/http3/headers.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/headers.go",
+    "sha256": "85268016500acd1e1840224c297c3d1d344dc1759b1112ebdbe987b3173b2828"
+  },
+  {
+    "path": "third_party/quic-go/http3/priority.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/priority.go",
+    "sha256": "7346cd5ddbadda68709fd657c7626f37dfca55cd6d28b7dabf31f8fd92daaa05"
+  },
+  {
+    "path": "third_party/quic-go/http3/gzip_reader.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/gzip_reader.go",
+    "sha256": "3f04c17a52e67a6a3cfb8bf75f93d9a5c90cd863192d313d3bd75c8c797a12ab"
+  },
+  {
+    "path": "third_party/quic-go/http3/ip_addr.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/ip_addr.go",
+    "sha256": "5b59944b122a0c4f7330c318423b6a26645dff2a0f73d4ef1233273712bee948"
+  },
+  {
+    "path": "third_party/quic-go/http3/trace.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/trace.go",
+    "sha256": "202ec4fa8b5c7b9d721194971c0211d47e4ce164feaaa4349095f1818f613d8b"
+  },
+  {
+    "path": "third_party/quic-go/http3/state_tracking_stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/state_tracking_stream.go",
+    "sha256": "eb1d3c138efab3756bf01723efe6431fe42f875b1ef40bf7924e09f045755865"
+  },
+  {
+    "path": "third_party/quic-go/http3/response_writer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/response_writer.go",
+    "sha256": "49afe96151617c6da0c96f874c455d3dcbf9a945509fd6b727f6e25f2269b69a"
+  },
+  {
+    "path": "third_party/quic-go/http3/stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/stream.go",
+    "sha256": "4953bb31fa2f5f223b83807ce744b7ced9a24e2d6aec622062dbdfc2575724e9"
+  },
+  {
+    "path": "third_party/quic-go/http3/frames.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/frames.go",
+    "sha256": "8fa42d43ab08966a76ea1e75cfa2de409a7cbdae2519a8cbaa9c1d4ef05916a8"
+  },
+  {
+    "path": "third_party/quic-go/http3/client.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/client.go",
+    "sha256": "6178ddab426a179b413a51131dcc1a1f7fcf45fcdc00434dc830799329d02f9e"
+  },
+  {
+    "path": "third_party/quic-go/http3/capsule.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/capsule.go",
+    "sha256": "0bbf8e5cf3dffe5ff980bcf6c973337db6ef400d64a67d37fc86906bb4e92c89"
+  },
+  {
+    "path": "third_party/quic-go/http3/transport.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/transport.go",
+    "sha256": "ea8a6452b4d8914c6010e544f6d8083fa8a7c569b701a20c2cb861611a144c9a"
+  },
+  {
+    "path": "third_party/quic-go/http3/request_writer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/request_writer.go",
+    "sha256": "69d361e2085592d32e0692c653458f0dcb6ea0c87e5b176233a7940f52ddfd2b"
+  },
+  {
+    "path": "third_party/quic-go/http3/server.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/server.go",
+    "sha256": "f6fa71ac01cc955a7c865ca2c5ef71d09beaab6149916fb6a44a8c5ade6cdd56"
+  },
+  {
+    "path": "third_party/quic-go/http3/error.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/error.go",
+    "sha256": "63fe9ed38a4ad3ad98151f6556a217f9337f212d6ece35c413ea033f64ebdcd9"
+  },
+  {
+    "path": "third_party/quic-go/http3/server_conn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/server_conn.go",
+    "sha256": "5db9197239ec191956b9bd13a1ab0ad4ae45a4a45532f3366e48d79dab2fefdb"
+  },
+  {
+    "path": "third_party/quic-go/http3/body.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/body.go",
+    "sha256": "32e5c2ccde86f28d25eb8e0f636e044df5049ee43f8a229fb8b6422e5af1899c"
+  },
+  {
+    "path": "third_party/quic-go/http3/conn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/conn.go",
+    "sha256": "be10692ab3dab9ecf900e1668913842e0185cfeb5b66c807437a448a7acb31c3"
+  },
+  {
+    "path": "third_party/quic-go/http3/error_codes.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/error_codes.go",
+    "sha256": "d8d00f755f5757cc24c4d31c9565ada6f9f58c6ce1e38dd6db402777d125ce13"
+  },
+  {
+    "path": "third_party/quic-go/http3/qlog.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/qlog.go",
+    "sha256": "fbe3302992d715be0a263895ab109f879c495e0d0fa1978133ca148c02a89f48"
+  },
+  {
+    "path": "third_party/quic-go/http3/settings_0rtt.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/settings_0rtt.go",
+    "sha256": "dd792595c9b17ef4bcf5b5d29c1a47f940a10b97aa897ddb84f6c58e3ce2b92a"
+  },
+  {
+    "path": "third_party/quic-go/qlog/packet_header.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/packet_header.go",
+    "sha256": "175ec4b9ff584017a783c8279c1428f4319f64b11acc37a7e978899f1d6a2469"
+  },
+  {
+    "path": "third_party/quic-go/qlog/qlog_dir.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/qlog_dir.go",
+    "sha256": "a8a84295c96622ad79a8bedc863daa340b12916e1f62a7207b5debe45da8b91e"
+  },
+  {
+    "path": "third_party/quic-go/qlog/event.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/event.go",
+    "sha256": "461722bbe9c445a469cd2717346485d17d8fc6b3b6a8fe7c49d563e67cecf6e5"
+  },
+  {
+    "path": "third_party/quic-go/qlog/types.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/types.go",
+    "sha256": "3ed9d90bebbf44d3e11c58b0f713077c3e99e821bbc8c62a6de8f09018624ffd"
+  },
+  {
+    "path": "third_party/quic-go/qlog/frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/frame.go",
+    "sha256": "53386b4601c8830a75234fed0d523f2dadc88ca38ad2199bf2c005f8f2ef2506"
+  },
+  {
+    "path": "third_party/quic-go/qlog/ip_redactor.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlog/ip_redactor.go",
+    "sha256": "84924f79fe268c0f13ecbbc36429e75bce7983ea16ab84ecfe449ef9b7c1814b"
+  },
+  {
+    "path": "third_party/quic-go/congestion/interface.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "congestion/interface.go",
+    "sha256": "c42dc6093072c638b5060553be354271efe878e93e0b833f9062a560464e5bee"
+  },
+  {
+    "path": "third_party/quic-go/quicvarint/io.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "quicvarint/io.go",
+    "sha256": "e52e975339bd8824f392453896ac24a30a3be14f55e8a3ba481d3741789e86bc"
+  },
+  {
+    "path": "third_party/quic-go/quicvarint/varint.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "quicvarint/varint.go",
+    "sha256": "3942d1893974c4642cae1a3cb81145ed556eb53a4296e0209bbf36650f163104"
+  },
+  {
+    "path": "third_party/quic-go/monotime/time.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "monotime/time.go",
+    "sha256": "1b6f7940fe965be9702033608a58492719e3b807fc5a999a30606dfc58236da6"
+  },
+  {
+    "path": "third_party/quic-go/qlogwriter/trace.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlogwriter/trace.go",
+    "sha256": "298e0cd38ec246c064589a18de87c6ba01c399e41588c0a06167b644d31de5de"
+  },
+  {
+    "path": "third_party/quic-go/qlogwriter/writer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlogwriter/writer.go",
+    "sha256": "248bc115fff9d339c383453b51021c7e5053a32d394b9e6ad41edca5973e0859"
+  },
+  {
+    "path": "third_party/quic-go/qlogwriter/event_schemas.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlogwriter/event_schemas.go",
+    "sha256": "98b2c9bbc7b3feb08856cc83aa0be42a35602cc043cbded7236354c1cc1e956b"
+  },
+  {
+    "path": "third_party/quic-go/http3/qlog/header_redactor.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/qlog/header_redactor.go",
+    "sha256": "184faba31b2e2fe1ddbab96cbd83f3559df9083dcd32dece937e792532c97b3d"
+  },
+  {
+    "path": "third_party/quic-go/http3/qlog/event.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/qlog/event.go",
+    "sha256": "706e76f49141142d64d116dfd73f380f863f6073c8616b7be6bbc16c6dd57016"
+  },
+  {
+    "path": "third_party/quic-go/http3/qlog/frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "http3/qlog/frame.go",
+    "sha256": "045fd87efd3a1049086d80883bf1bbb6ced5ba43e4b244fed11f71183c3f0528"
+  },
+  {
+    "path": "third_party/quic-go/internal/handshake/interface.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/handshake/interface.go",
+    "sha256": "74a18f114c1e54f2b5c63e4477acb5f08fd38bcbe6479e8bfcd63ac2a3252d96"
+  },
+  {
+    "path": "third_party/quic-go/internal/handshake/token_generator.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/handshake/token_generator.go",
+    "sha256": "c23beaf37e37f9498cb5ae6f4bf3991c0f79f69ca32fa2c6d230f9b6d11b57ec"
+  },
+  {
+    "path": "third_party/quic-go/internal/israce/race.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/israce/race.go",
+    "sha256": "1677d5e90db2c28a075823119948b82783a232205316250f6cf8a143a3492c1f"
+  },
+  {
+    "path": "third_party/quic-go/internal/israce/norace.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/israce/norace.go",
+    "sha256": "27cb9bcd4c0d290ea2551394ffdfe24c3dd9433b0bcef4d6f2a73a3f78747850"
+  },
+  {
+    "path": "third_party/quic-go/internal/qerr/errors.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/qerr/errors.go",
+    "sha256": "c55f06fc94db89f07dc00b5590b7e847c63a24db9e694f36980f4bed4f0d4dc2"
+  },
+  {
+    "path": "third_party/quic-go/internal/qerr/error_codes.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/qerr/error_codes.go",
+    "sha256": "74310c5087458983e4150e4896f77ec66b8b2a2f25c2d75a85f78f745bc321d2"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/interface.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/interface.go",
+    "sha256": "20940d5fe56483c4599f153978c6488c620f4ab092905ad27013ba9d0235e35a"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/hybrid_slow_start.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/hybrid_slow_start.go",
+    "sha256": "3214de1fabb84e31b8c0ff5747562230a91997fd7c9ae00039bc6f68d706f25c"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/clock.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/clock.go",
+    "sha256": "56fe2b726adff9d07b8e72f416aec712a803db494febf9046c0f020279b5eb4d"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/cubic_sender.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/cubic_sender.go",
+    "sha256": "875195ca53a71f9f0b810d0ec6d2c08d37c0ac0ee1914919621be8916785f5e9"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/cubic.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/cubic.go",
+    "sha256": "e63d148b12bda71bb802d52e29106cf3e28abb3aec93d3555296409a3a4d1e1b"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/bandwidth.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/bandwidth.go",
+    "sha256": "831b1c6a6079f5c093988edfa006b3bda9e2ac7112908b2370ca711af13fe5c8"
+  },
+  {
+    "path": "third_party/quic-go/internal/congestion/pacer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/congestion/pacer.go",
+    "sha256": "226719cf3ef9f35567b55527e5950e351c2fd4a14b2ddb2ffa3a2ccd3a8cfd65"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/extended_header.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/extended_header.go",
+    "sha256": "d94195889e81a0cfece054a5c4ad49e286235f67d9d248cec88426c745c3d8d1"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/crypto_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/crypto_frame.go",
+    "sha256": "2d16c9bc39e665fe7598b6b2104ea6c1c40e9d8256921087a13e86f81dcb193a"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/max_stream_data_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/max_stream_data_frame.go",
+    "sha256": "0f3a17c242193076bcbc3877f07483418eec54e538d252a58dee75b7764fa3eb"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/ack_frequency_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/ack_frequency_frame.go",
+    "sha256": "4378388f85cf231d26c98f327195b7da55e741142fdfb6e83cbe42acfee23947"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/datagram_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/datagram_frame.go",
+    "sha256": "8559cea65f62b3d7f004f5c2d505d6924c5e514f9e4e2d0e076c2f01f5752a32"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/new_connection_id_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/new_connection_id_frame.go",
+    "sha256": "c7180a18c41576e1d15be1cc9d17bda5611c2febb84a850d6b8720741c14ac0c"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/max_data_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/max_data_frame.go",
+    "sha256": "b35b772c84747f6537606b3ed874df70c23e619d7d48e8d0232f1a74e625e2f9"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/stream_data_blocked_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/stream_data_blocked_frame.go",
+    "sha256": "6366c0545d628efd06f6d7a71f3a95f514035be8cba36410f085f4cf1a78c809"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/header.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/header.go",
+    "sha256": "c934bc5c746f3aa9118bcd4a0eac50ff4a622cc523b4bdc8d7096a4c1d0ed8a7"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/frame_type.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/frame_type.go",
+    "sha256": "67f316d56d5c8f9f166014787876d06db2c2df479da7468d6a411009bea4bea2"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/retire_connection_id_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/retire_connection_id_frame.go",
+    "sha256": "77abf5b3c526d7ea649c10ff19689f421714402262a8e4771b702fe5d828f710"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/immediate_ack_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/immediate_ack_frame.go",
+    "sha256": "c4ba6374010a3b8bdae46103b19cef896853bc3d6a716313911a9e69912243a2"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/pool.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/pool.go",
+    "sha256": "f1f00128498bf47917a59556ee9bdccfa9cdb189119b1d07de6554b43095a7a0"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/version_negotiation.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/version_negotiation.go",
+    "sha256": "fd2088a7ae878e8fd800c8d956538e3324282459838db960eb83c976d4d6baa0"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/transport_parameters_chrome.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/transport_parameters_chrome.go",
+    "sha256": "da5eb416724e5de43b42fe208a2025a9048806d3637daa9752de288b0c47a675"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/path_response_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/path_response_frame.go",
+    "sha256": "3ddeaea93d093dcf8a033e73dd733752eedbf471971af8a10f697277d6ae0ffc"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/handshake_done_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/handshake_done_frame.go",
+    "sha256": "d72ec90ebc62656bd8678b958213de39217564de23cff9ebc5838c9ecad82a7e"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/reset_stream_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/reset_stream_frame.go",
+    "sha256": "ef33951769343e77665ddeab2c12e16efa7aa067fc9c3a33bd09275a9d261a42"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/ack_range.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/ack_range.go",
+    "sha256": "85da03abddf02a7e6cedcefb3993f656cfe886aac0a0b3f1402d848d320cd9c6"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/streams_blocked_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/streams_blocked_frame.go",
+    "sha256": "f4b31c76478476a519c0fa8c9261ab6f82ea5c9016d7be1b182eedf2d64c72e7"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/ping_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/ping_frame.go",
+    "sha256": "e576e88dec770d498f7e54480d8a4213eb99ae7c0123416eb347b070aaa5ab98"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/transport_parameters.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/transport_parameters.go",
+    "sha256": "2c94d7c1b441bbbe50f20e6f46d39dd7ceb33907db8e820392fb7ee1a0142ed1"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/short_header.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/short_header.go",
+    "sha256": "2d081f26fe4718a2a4bbce90de18d84e50cb89154e8ee90847ad9f7585f5c124"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/max_streams_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/max_streams_frame.go",
+    "sha256": "44096d5d956ae59f798eb10f99c06f6339e8376a807864638a8c203b3ffb0242"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/data_blocked_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/data_blocked_frame.go",
+    "sha256": "d3c9f66fc51278698e6f4a1bf4d9cd16a4ed6c7156900c0685036db89ccaef54"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/stream_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/stream_frame.go",
+    "sha256": "ddd0f4410445ad6239df387f6638907bf4a8f0a4e591b1836f5418f1c69f21e5"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/frame.go",
+    "sha256": "0270df74fef9129c5513842e8058af806576da8ab5791a1127d8fdb795e74461"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/new_token_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/new_token_frame.go",
+    "sha256": "22c07e92092e72e123dcde8089d756f762c99a08b7090b8f6a3058f0409f8a33"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/path_challenge_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/path_challenge_frame.go",
+    "sha256": "89bbd1a44cb4d639fdaec767e3ee16884d38f7ff08ee9699abd45cadadc8c69c"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/stop_sending_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/stop_sending_frame.go",
+    "sha256": "fd2b7ca14cd0be4b452e0eef42f04c17b7d187cbceb366e212f1f2dd0d9eff38"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/log.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/log.go",
+    "sha256": "8118ff6f52197ce0a4eb67d8a8e519a12177dffb5319a44fe8c1490879061c5c"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/connection_close_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/connection_close_frame.go",
+    "sha256": "fea6c77644d197cd597a99d0bd5be83e4643ee17ec14abf521581578fc5c4c5a"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/ack_frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/ack_frame.go",
+    "sha256": "bcd8b342a93a44b320e8794d3330f665b541bd7f7139458f7e46c92730de4675"
+  },
+  {
+    "path": "third_party/quic-go/internal/wire/frame_parser.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/wire/frame_parser.go",
+    "sha256": "66dc0b269f559ead0ec6beb12a6380e4d46029468ba97267450fcffd05d02a4b"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/connstats.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/connstats.go",
+    "sha256": "15c1d9d7f0724ce855d24a066b8dd5027bb0d35b840921ce2b14c52a4b3039d8"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/rand.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/rand.go",
+    "sha256": "d436668fe97117d04e2869c3d3973aa1ff9023ecdd3aae788221f9c33145525d"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/streamframe_interval.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/streamframe_interval.go",
+    "sha256": "74578f15ea87b26a5b3b11a6fa881d86b6213e334967b42f792640aa40159dea"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/log.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/log.go",
+    "sha256": "d0e89f554cf12c4ac7439f50a4dc12498ed669e99147860e31726b6b91a761ef"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/buffered_write_closer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/buffered_write_closer.go",
+    "sha256": "906b25481e2c4b98617906a6e85b9c157daed902490a2cc243d7cfd575774b3d"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/rtt_stats.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/rtt_stats.go",
+    "sha256": "ccbfc99c4c11e68ac404e7aa2c8a6ef4dbf5470eb4a429ef8cd414b9737ca5d5"
+  },
+  {
+    "path": "third_party/quic-go/internal/monotime/time.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/monotime/time.go",
+    "sha256": "a9957ea88956b8c5139e4a57d7efcdc3a3a7ae703b92774c524bf52eadfdd13d"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/packet_number.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/packet_number.go",
+    "sha256": "77ecc48d85a4ee0a03f73cc4a8504e50fe40c019a1c31ea82ce94c6252cc4b14"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/stream.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/stream.go",
+    "sha256": "2c5050b5a5eaefab64ac5a17cf3fa817a613fdc4a9b33b6a82990342f2fb39b4"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/params.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/params.go",
+    "sha256": "430672dca9fd3d7946f5ff8b41a95aa4e5e33f168ff49f4ccfa5739f5c4f4dc9"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/encryption_level.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/encryption_level.go",
+    "sha256": "8cfeb677460937200b3da07bd0cf475a38a45cb9755dcbe65672e81d062fbeec"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/perspective.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/perspective.go",
+    "sha256": "a32a059de3589b10ab73c807f5dd98b2520ecedc1895da1914d00cea39b6a251"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/protocol.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/protocol.go",
+    "sha256": "a8da00928e939f35f4ddefb5cfd57f6e2b57f767cd41abea8f75bf73282ee886"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/key_phase.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/key_phase.go",
+    "sha256": "b947d8facee6dc359e677a195d28f0be028d0b61bf20f6a10fc8bb6d076da8c0"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/connection_id.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/connection_id.go",
+    "sha256": "7130b43f9c8de14ec96c2618751fd70890562a63f3fd32d66f618a2e95e7d472"
+  },
+  {
+    "path": "third_party/quic-go/internal/protocol/version.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/protocol/version.go",
+    "sha256": "535fa4e2c3c6437c2a34e2c1a1c3ea54b172826062ea81f20498fd9f340d6ca0"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/packet.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/packet.go",
+    "sha256": "ace13a88f5db8c7831168d84e19242c483d549482fd43e33cdc239134065231f"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/sent_packet_history.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/sent_packet_history.go",
+    "sha256": "e89354a2c5716c85b1fb08d681756520754dfcb263e4cd07b24dc20f8b25a415"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/lost_packet_tracker.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/lost_packet_tracker.go",
+    "sha256": "00695c704a0e51b05be107bb31c7641a48f96972721da734bb69e21aaa0f716b"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/packet_number_generator.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/packet_number_generator.go",
+    "sha256": "9747ef2ec785b4a2cce7f8b85f1ca3e3e8a0fb2814b2dd8d712255a0bbab1705"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/send_mode.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/send_mode.go",
+    "sha256": "8462f416bd9eb88bd70d82ae07ee147a4bf0c4af4ec11bc429e0e17706691ef5"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/received_packet_history.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/received_packet_history.go",
+    "sha256": "824ef60ff794c7cb3d8f247a6f2c1583372401e61867dc4b4445af4fdf571a6f"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/cc_adapter_ex.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/cc_adapter_ex.go",
+    "sha256": "3873a0ff4b93226f473378c67e869362bd42af910084eb3d0d3f154ddf21ea0e"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/ack_eliciting.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/ack_eliciting.go",
+    "sha256": "bb748d8d8c2052fa037d35665b8daf6ebdb1cb11df0ae9e21aee59dfcb0c55e4"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/ecn.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/ecn.go",
+    "sha256": "76e64ad7695bd4fb7b836246ea85ddab23e4cde2456b0966cda06912fa592e9b"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/cc_adapter.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/cc_adapter.go",
+    "sha256": "72a45484bdd398562300aa372d8c2e58a6fac8f150890d6e4778e55d0a72f52f"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/received_packet_handler.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/received_packet_handler.go",
+    "sha256": "e2099f2526a531fbd6e471102d0ad125effe4ecea20b86f71d1901f1cad6f89d"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/frame.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/frame.go",
+    "sha256": "a4fb2ce56041c5f5c1fc138a74f8ebde0ab0bdb09e39ebe84e8050566aa61128"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/received_packet_tracker.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/received_packet_tracker.go",
+    "sha256": "6d9cf2e705bf9d27e4f7e3e72a424e4a074b8074f3c6d3e1cf058a9d41eaab19"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/sent_packet_handler.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/sent_packet_handler.go",
+    "sha256": "2bc9db0e4ff4a0096cbc26b0277c6b78390b6c057d2f30f4c7af8a4f9a75a3e2"
+  },
+  {
+    "path": "third_party/quic-go/internal/ackhandler/interfaces.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/ackhandler/interfaces.go",
+    "sha256": "7a45eb44efdc19de11f73e099aac375329a5c97294a411aeb6ee0764ea856ec0"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/tree/tree.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/tree/tree.go",
+    "sha256": "dea23476cfabef10ae4cd27c53a36e814a84a8988f1f5d195b082bee8b44b14b"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/ringbuffer/ringbuffer.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/ringbuffer/ringbuffer.go",
+    "sha256": "5c72f0831acdc54281603f2ac5f257366da9358a787d4c9feaacaaee8b631570"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/linkedlist/linkedlist.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/linkedlist/linkedlist.go",
+    "sha256": "4007b540adc3819bb26e198c9a21e5821436f9d943d8e3e9fcbb93e04823f451"
+  },
+  {
+    "path": "third_party/quic-go/internal/utils/minheap/minheap.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "internal/utils/minheap/minheap.go",
+    "sha256": "b137978b563e07746eafc6ade6b8bea6737c87ee499326907dccd18d5eda18a4"
+  },
+  {
+    "path": "third_party/quic-go/qlogwriter/jsontext/encoder.go",
+    "upstream": "HyNetworks/quic-go",
+    "revision": "2895f039137a405a34cffbcb27510ad31717d89a",
+    "upstreamPath": "qlogwriter/jsontext/encoder.go",
+    "sha256": "6a4243da4a643ce41d2df45e321177c5c63f901629a787869fdcfb95e7151c9c"
+  },
+  {
+    "path": "third_party/hysteria/core/LICENSE.md",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/LICENSE.md",
+    "sha256": "b279cfdac4db4b077f0660b5d8156d50a8bc7bd410036dc356499af43c4e84f5"
+  },
+  {
+    "path": "third_party/hysteria/core/go.mod",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/go.mod",
+    "sha256": "831bb5d9245b5565ec4c9fc6f72126f8410aa50e4d73d634d4a8e28a6c5257d5"
+  },
+  {
+    "path": "third_party/hysteria/core/go.sum",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/go.sum",
+    "sha256": "51bbb9214ead1e2a37b98ebbb93ef5de3324f7b265aabf626d8e3190ede2e2b7"
+  },
+  {
+    "path": "third_party/hysteria/core/errors/errors.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/errors/errors.go",
+    "sha256": "36c8ab2694486d8ced59804c13ecd6d420e1288a29667cba2b1684885340f133"
+  },
+  {
+    "path": "third_party/hysteria/core/server/config.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/server/config.go",
+    "sha256": "4bea741aef94b30a827edbbc6fa87c0b12d6b61ca9466be27917fe0e6a472a8b"
+  },
+  {
+    "path": "third_party/hysteria/core/server/udp.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/server/udp.go",
+    "sha256": "590d7943e7d7727c53dba1ca849f7e9404c373d3ff30dc50ab518f59f21507e1"
+  },
+  {
+    "path": "third_party/hysteria/core/server/server.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/server/server.go",
+    "sha256": "cbc71348ba5b68f1d1b76e8ef2f85bb08449f105bbdf4ca7eaffff8e6705876c"
+  },
+  {
+    "path": "third_party/hysteria/core/server/copy.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/server/copy.go",
+    "sha256": "7d855c80f357eca1c6332d73ae1c71c5ad63f92d11200e5282401ffea8ce63a0"
+  },
+  {
+    "path": "third_party/hysteria/core/client/config.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/client/config.go",
+    "sha256": "8efe5c3dcd92c835db2ef89b7016b60657be0dcdd80ae9b52ba938be0ba861e3"
+  },
+  {
+    "path": "third_party/hysteria/core/client/udp.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/client/udp.go",
+    "sha256": "4726356c106ed92430d40a9b5f119576c1339b3ca9183064a128bd612374534c"
+  },
+  {
+    "path": "third_party/hysteria/core/client/client.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/client/client.go",
+    "sha256": "21ce9fcee330a47739d61663a444ab9869250bd4afa6d8f5e5005e81aa57c35b"
+  },
+  {
+    "path": "third_party/hysteria/core/client/reconnect.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/client/reconnect.go",
+    "sha256": "f0a40f407db0cd9035d1b9796d423be3c1a351013890279d9d92a738ecd2d0eb"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/utils.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/utils.go",
+    "sha256": "83df6db7655400b3919a53fb94b20d0a0bdedc8df1e6bc6dd70aeed957bc544e"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/frag/frag.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/frag/frag.go",
+    "sha256": "246aed0a20fd9a00255c1d74b8dd49d5f5e9bf6f7593376cad35dfa4976091d3"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/utils/atomic.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/utils/atomic.go",
+    "sha256": "0aaeec8669b4cfbb20b406dbceb4c4af83c50beb6e3fbdbb1d8731699c5809b5"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/utils/qstream.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/utils/qstream.go",
+    "sha256": "292b23c285613f6d69e5176eb66f4512064432552127b7687f61e211e396cf68"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/pmtud/unavail.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/pmtud/unavail.go",
+    "sha256": "ac15f58b3033e87816da572262d0875454690f71cccd05e5b19d12581eeb6615"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/pmtud/avail.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/pmtud/avail.go",
+    "sha256": "7ad93b7ac3298eb04e2304c1fc9ebfb9f7997a33db7bdee41ef2aeaf3a1ce9b0"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/protocol/padding.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/protocol/padding.go",
+    "sha256": "ca93d4b0e173df3fa1a422655fa98e8af5160c8c592f6eaf7f8e530d78387908"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/protocol/http.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/protocol/http.go",
+    "sha256": "c3ca34963c3d207f5e759e8b4f267267b49ade3808f464c6368bb580d6667505"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/protocol/proxy.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/protocol/proxy.go",
+    "sha256": "41f5b1b2261618982e3aa2fac3dacfcb316fd1016d899c4792d01e977e8adc01"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/windowed_filter.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/windowed_filter.go",
+    "sha256": "e573928f676d7ab9a6b8bbfd3530eb4a99fa96bc2861e7c271e242f6d2becce2"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/packet_number_indexed_queue.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/packet_number_indexed_queue.go",
+    "sha256": "f01bdc184723d7b153713128e48758ca18fca9e4ffb157f18c2b2edecfbf7f1a"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/bandwidth_sampler.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/bandwidth_sampler.go",
+    "sha256": "16fb21e17af2750d0687f13eceab1d2eba61e4be7c8cff520dc873d556d9bb7e"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/clock.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/clock.go",
+    "sha256": "189e4ad09b252e33505b67760d4e362ee34fb7b000bf69903e2747dec3bacaab"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/bandwidth.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/bandwidth.go",
+    "sha256": "88c1645d59e0ef379cee2f3b40f32c5f9a9b83a1973a70c2874c75112057145c"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/bbr_sender.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/bbr_sender.go",
+    "sha256": "f01c0059914aec04626007b1469d3866c0420cc1f03b293e847a3396767cdf1e"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/bbr/ringbuffer.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/bbr/ringbuffer.go",
+    "sha256": "0a0ff11bd56a8c64a53db421b0d71560144c8690db7c726bc9fbc93465b0e589"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/brutal/brutal.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/brutal/brutal.go",
+    "sha256": "c620671ca0bfff791c512fda1b0a3cda48e44688430e30c8ab57677e4a87f83a"
+  },
+  {
+    "path": "third_party/hysteria/core/internal/congestion/common/pacer.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "core/internal/congestion/common/pacer.go",
+    "sha256": "ca7cb0bd5897e573050522d7c8ec85b21964843d7cd2ac2fb0929f375442ed3c"
+  },
+  {
+    "path": "internal/socks5/server.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "app/internal/socks5/server.go",
+    "sha256": "0787bf287dd8b4315f996a6455b6420c218674b0ca5b36014fc77bfc5a0aff68"
+  },
+  {
+    "path": "internal/forwarding/udp.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "app/internal/forwarding/udp.go",
+    "sha256": "9f3763d7ea091cdea12b28d686176bde7b8e79d7efaf90a1392ad84bfa14001a"
+  },
+  {
+    "path": "internal/forwarding/tcp.go",
+    "upstream": "HyNetworks/hysteria",
+    "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
+    "upstreamPath": "app/internal/forwarding/tcp.go",
+    "sha256": "e1e408812fc74c35e6cdd93ad40e9431b79b91043dc7843877c9f2dd860766e0"
+  }
+]

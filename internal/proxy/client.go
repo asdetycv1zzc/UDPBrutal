@@ -3,30 +3,38 @@ package proxy
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"sync"
 	"time"
 
+	hyclient "github.com/apernet/hysteria/core/v2/client"
+	"github.com/apernet/quic-go"
 	"github.com/asdetycv1zzc/UDPBrutal/internal/config"
-	"github.com/asdetycv1zzc/UDPBrutal/internal/transport"
-	"github.com/hashicorp/yamux"
+	"github.com/asdetycv1zzc/UDPBrutal/internal/forwarding"
+	"github.com/asdetycv1zzc/UDPBrutal/internal/socks5"
 )
 
 type Client struct {
-	cfg                 config.Client
-	ctx                 context.Context
-	cancel              context.CancelFunc
-	mu                  sync.RWMutex
-	session             *yamux.Session
-	reverseAddresses    []string
-	reverseUDPAddresses []string
-	listeners           []net.Listener
-	udpListeners        []*net.UDPConn
-	closed              bool
-	done                chan struct{}
+	cfg                    config.Client
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	mu                     sync.RWMutex
+	native                 hyclient.Client
+	conn                   *quic.Conn
+	reverse                *reverseClient
+	reverseTCP, reverseUDP []string
+	listeners              []net.Listener
+	udpListeners           []net.PacketConn
+	closed                 bool
+	done                   chan struct{}
 }
+
+var _ hyclient.Client = (*Client)(nil)
+
+type packetFactory struct{ socket net.PacketConn }
+
+func (f packetFactory) New(net.Addr) (net.PacketConn, error) { return f.socket, nil }
 
 func StartClient(parent context.Context, cfg config.Client) (*Client, error) {
 	if err := cfg.Validate(); err != nil {
@@ -34,104 +42,116 @@ func StartClient(parent context.Context, cfg config.Client) (*Client, error) {
 	}
 	ctx, cancel := context.WithCancel(parent)
 	c := &Client{cfg: cfg, ctx: ctx, cancel: cancel, done: make(chan struct{})}
+	c.reverse = newReverseClient(ctx, cfg.ReverseTCP, cfg.ReverseUDP)
 	if err := c.connect(); err != nil {
 		cancel()
+		c.reverse.Close()
 		return nil, err
 	}
 	if cfg.SOCKS5.Listen != "" {
 		l, err := net.Listen("tcp", cfg.SOCKS5.Listen)
 		if err != nil {
-			_ = c.Close()
+			c.Close()
 			return nil, err
 		}
 		c.listeners = append(c.listeners, l)
-		go c.serveSOCKS(l)
+		server := &socks5.Server{HyClient: c, DisableUDP: cfg.SOCKS5.DisableUDP}
+		if cfg.SOCKS5.Username != "" {
+			server.AuthFunc = func(u, p string) bool { return u == cfg.SOCKS5.Username && p == cfg.SOCKS5.Password }
+		}
+		go server.Serve(l)
 		slog.Info("SOCKS5 listening", "listen", l.Addr())
 	}
 	for _, f := range cfg.TCPForwarding {
 		l, err := net.Listen("tcp", f.Listen)
 		if err != nil {
-			_ = c.Close()
+			c.Close()
 			return nil, err
 		}
 		c.listeners = append(c.listeners, l)
-		go c.serveTCP(l, f.Remote)
+		tunnel := &forwarding.TCPTunnel{HyClient: c, Remote: f.Remote}
+		go tunnel.Serve(l)
 		slog.Info("TCP forwarding listening", "listen", l.Addr(), "remote", f.Remote)
 	}
 	for _, f := range cfg.UDPForwarding {
-		addr, err := net.ResolveUDPAddr("udp", f.Listen)
+		socket, err := net.ListenPacket("udp", f.Listen)
 		if err != nil {
-			_ = c.Close()
+			c.Close()
 			return nil, err
 		}
-		l, err := net.ListenUDP("udp", addr)
-		if err != nil {
-			_ = c.Close()
-			return nil, err
-		}
-		c.udpListeners = append(c.udpListeners, l)
-		go serveUDPMapping(ctx, l, func() (*yamux.Stream, error) { return c.open(request{Command: "udpFixed", Address: f.Remote}) }, udpTimeout(f.Timeout))
-		slog.Info("UDP forwarding listening", "listen", l.LocalAddr(), "remote", f.Remote)
+		c.udpListeners = append(c.udpListeners, socket)
+		tunnel := &forwarding.UDPTunnel{HyClient: c, Remote: f.Remote, Timeout: udpTimeout(f.Timeout)}
+		go tunnel.Serve(socket)
+		slog.Info("UDP forwarding listening", "listen", socket.LocalAddr(), "remote", f.Remote)
 	}
 	go c.maintain()
 	return c, nil
 }
 func (c *Client) connect() error {
-	options, err := config.Options(c.cfg.Bandwidth, c.cfg.Transport, c.cfg.Auth)
+	addr, err := net.ResolveUDPAddr("udp", c.cfg.Server)
 	if err != nil {
 		return err
 	}
-	conn, err := transport.Dial(c.ctx, c.cfg.Server, options)
+	socket, err := net.ListenUDP("udp", nil)
 	if err != nil {
 		return err
 	}
-	session, err := yamux.Client(conn, muxConfig())
+	stopCancel := context.AfterFunc(c.ctx, func() { socket.Close() })
+	defer stopCancel()
+	up, down, err := config.BandwidthBytes(c.cfg.Bandwidth)
 	if err != nil {
-		_ = conn.Close()
+		socket.Close()
 		return err
 	}
-	control, err := session.OpenStream()
+	q := c.cfg.QUIC
+	incomingStreams := q.MaxIncomingStreams
+	if len(c.cfg.ReverseTCP) > 0 && incomingStreams == 0 {
+		incomingStreams = 1024
+	}
+	native, _, err := hyclient.NewClient(&hyclient.Config{
+		ConnFactory: packetFactory{socket}, ServerAddr: addr, Auth: c.cfg.Auth, FastOpen: c.cfg.FastOpen,
+		QUICConfig: hyclient.QUICConfig{
+			MaxIncomingStreams:         incomingStreams,
+			InitialStreamReceiveWindow: q.InitStreamReceiveWindow, MaxStreamReceiveWindow: q.MaxStreamReceiveWindow,
+			InitialConnectionReceiveWindow: q.InitConnReceiveWindow, MaxConnectionReceiveWindow: q.MaxConnReceiveWindow,
+			MaxIdleTimeout: q.MaxIdleTimeout, KeepAlivePeriod: q.KeepAlivePeriod,
+			DisablePathMTUDiscovery: q.DisablePathMTUDiscovery, DisableGSO: q.DisableGSO, DisableChromeParrot: true,
+		},
+		CongestionConfig: hyclient.CongestionConfig{Type: c.cfg.Congestion.Type, BBRProfile: c.cfg.Congestion.BBRProfile},
+		BandwidthConfig:  hyclient.BandwidthConfig{MaxTx: up, MaxRx: down, DisableLossCompensation: c.cfg.Bandwidth.DisableLossCompensation},
+		DatagramHandler:  c.reverse.HandleDatagram,
+	})
 	if err != nil {
-		_ = session.Close()
+		socket.Close()
 		return err
 	}
-	_ = control.SetDeadline(time.Now().Add(10 * time.Second))
-	// The server needs the bind addresses only; local destinations stay on client.
-	mappings := make([]config.Forward, len(c.cfg.ReverseTCP))
-	for i, f := range c.cfg.ReverseTCP {
-		mappings[i].Listen = f.Listen
+	owner, ok := native.(interface{ Connection() *quic.Conn })
+	if !ok {
+		native.Close()
+		return errors.New("Hysteria native connection hook is unavailable")
 	}
-	udpMappings := make([]config.Forward, len(c.cfg.ReverseUDP))
-	for i, f := range c.cfg.ReverseUDP {
-		udpMappings[i].Listen = f.Listen
-		udpMappings[i].Timeout = f.Timeout
+	conn := owner.Connection()
+	go c.reverse.AcceptStreams(conn)
+	var reply registrationReply
+	if len(c.cfg.ReverseTCP)+len(c.cfg.ReverseUDP) > 0 {
+		reply, err = c.reverse.Register(conn)
+		if err != nil {
+			native.Close()
+			return err
+		}
 	}
-	if err = writeMessage(control, request{Command: "control", Reverse: mappings, ReverseUDP: udpMappings}); err != nil {
-		_ = session.Close()
-		return err
-	}
-	var reply response
-	if err = readMessage(control, &reply); err != nil {
-		_ = session.Close()
-		return err
-	}
-	if !reply.OK {
-		_ = session.Close()
-		return errors.New(reply.Error)
-	}
-	_ = control.SetDeadline(time.Time{})
 	c.mu.Lock()
 	if c.closed || c.ctx.Err() != nil {
 		c.mu.Unlock()
-		_ = session.Close()
+		native.Close()
 		return net.ErrClosed
 	}
-	c.session = session
-	c.reverseAddresses = reply.Addresses
-	c.reverseUDPAddresses = reply.UDPAddresses
+	c.native = native
+	c.conn = conn
+	c.reverseTCP = reply.TCP
+	c.reverseUDP = reply.UDP
 	c.mu.Unlock()
-	go c.acceptReverse(session)
-	slog.Info("connected to server", "server", c.cfg.Server, "reverseTCP", reply.Addresses, "reverseUDP", reply.UDPAddresses)
+	slog.Info("connected to server", "server", c.cfg.Server, "transport", "Hysteria plaintext profile", "reverseTCP", reply.TCP, "reverseUDP", reply.UDP)
 	return nil
 }
 func (c *Client) maintain() {
@@ -139,13 +159,15 @@ func (c *Client) maintain() {
 	defer c.Close()
 	for {
 		c.mu.RLock()
-		session := c.session
+		conn := c.conn
+		native := c.native
 		c.mu.RUnlock()
 		select {
 		case <-c.ctx.Done():
 			return
-		case <-session.CloseChan():
+		case <-conn.Context().Done():
 		}
+		_ = native.Close()
 		slog.Warn("server disconnected; reconnecting")
 		for {
 			timer := time.NewTimer(time.Second)
@@ -163,7 +185,27 @@ func (c *Client) maintain() {
 		}
 	}
 }
-func (c *Client) Wait() { <-c.done }
+func (c *Client) TCP(address string) (net.Conn, error) {
+	c.mu.RLock()
+	native := c.native
+	closed := c.closed
+	c.mu.RUnlock()
+	if closed || native == nil {
+		return nil, net.ErrClosed
+	}
+	return native.TCP(address)
+}
+func (c *Client) DialTCP(address string) (net.Conn, error) { return c.TCP(address) }
+func (c *Client) UDP() (hyclient.HyUDPConn, error) {
+	c.mu.RLock()
+	native := c.native
+	closed := c.closed
+	c.mu.RUnlock()
+	if closed || native == nil {
+		return nil, net.ErrClosed
+	}
+	return native.UDP()
+}
 func (c *Client) Close() error {
 	c.cancel()
 	c.mu.Lock()
@@ -172,123 +214,48 @@ func (c *Client) Close() error {
 		return nil
 	}
 	c.closed = true
-	session := c.session
+	native := c.native
 	listeners := append([]net.Listener(nil), c.listeners...)
-	udpListeners := append([]*net.UDPConn(nil), c.udpListeners...)
+	udp := append([]net.PacketConn(nil), c.udpListeners...)
 	c.mu.Unlock()
 	for _, l := range listeners {
-		_ = l.Close()
+		l.Close()
 	}
-	for _, l := range udpListeners {
-		_ = l.Close()
+	for _, l := range udp {
+		l.Close()
 	}
-	if session != nil {
-		_ = session.Close()
+	c.reverse.Close()
+	if native != nil {
+		return native.Close()
 	}
 	return nil
 }
+func (c *Client) Wait() { <-c.done }
 func (c *Client) LocalAddresses() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	out := make([]string, len(c.listeners))
-	for i, l := range c.listeners {
-		out[i] = l.Addr().String()
+	var a []string
+	for _, l := range c.listeners {
+		a = append(a, l.Addr().String())
 	}
-	return out
-}
-func (c *Client) ReverseAddresses() []string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return append([]string(nil), c.reverseAddresses...)
-}
-func (c *Client) ReverseUDPAddresses() []string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return append([]string(nil), c.reverseUDPAddresses...)
+	return a
 }
 func (c *Client) LocalUDPAddresses() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	out := make([]string, len(c.udpListeners))
-	for i, l := range c.udpListeners {
-		out[i] = l.LocalAddr().String()
+	var a []string
+	for _, l := range c.udpListeners {
+		a = append(a, l.LocalAddr().String())
 	}
-	return out
+	return a
 }
-func (c *Client) open(req request) (*yamux.Stream, error) {
+func (c *Client) ReverseAddresses() []string {
 	c.mu.RLock()
-	session := c.session
-	closed := c.closed
-	c.mu.RUnlock()
-	if closed || session == nil || session.IsClosed() {
-		return nil, errors.New("server is disconnected")
-	}
-	return open(session, req)
+	defer c.mu.RUnlock()
+	return append([]string(nil), c.reverseTCP...)
 }
-func (c *Client) DialTCP(address string) (net.Conn, error) {
-	return c.open(request{Command: "tcp", Address: address})
-}
-func (c *Client) serveTCP(l net.Listener, remote string) {
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			return
-		}
-		go func() {
-			stream, err := c.DialTCP(remote)
-			if err != nil {
-				_ = conn.Close()
-				return
-			}
-			relay(conn, stream)
-		}()
-	}
-}
-func (c *Client) acceptReverse(session *yamux.Session) {
-	slots := make(chan struct{}, 256)
-	for {
-		stream, err := session.AcceptStream()
-		if err != nil {
-			return
-		}
-		select {
-		case slots <- struct{}{}:
-			go func() { defer func() { <-slots }(); c.handleReverse(stream) }()
-		default:
-			_ = stream.Close()
-		}
-	}
-}
-func (c *Client) handleReverse(stream *yamux.Stream) {
-	defer stream.Close()
-	_ = stream.SetDeadline(time.Now().Add(10 * time.Second))
-	var req request
-	if readMessage(stream, &req) != nil {
-		return
-	}
-	if req.Command == "reverseUDP" {
-		if req.Index < 0 || req.Index >= len(c.cfg.ReverseUDP) {
-			_ = writeMessage(stream, response{Error: "unknown reverse UDP mapping"})
-			return
-		}
-		f := c.cfg.ReverseUDP[req.Index]
-		handleFixedUDP(c.ctx, stream, f.Remote, udpTimeout(f.Timeout))
-		return
-	}
-	if req.Command != "reverse" || req.Index < 0 || req.Index >= len(c.cfg.ReverseTCP) {
-		_ = writeMessage(stream, response{Error: "unknown reverse mapping"})
-		return
-	}
-	remote := c.cfg.ReverseTCP[req.Index].Remote
-	conn, err := (&net.Dialer{Timeout: 10 * time.Second}).DialContext(c.ctx, "tcp", remote)
-	if err != nil {
-		_ = writeMessage(stream, response{Error: fmt.Sprintf("local target: %v", err)})
-		return
-	}
-	defer conn.Close()
-	if writeMessage(stream, response{OK: true}) != nil {
-		return
-	}
-	_ = stream.SetDeadline(time.Time{})
-	relay(stream, conn)
+func (c *Client) ReverseUDPAddresses() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return append([]string(nil), c.reverseUDP...)
 }

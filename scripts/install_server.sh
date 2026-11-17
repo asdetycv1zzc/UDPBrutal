@@ -23,7 +23,7 @@ done
 [[ "$(uname -s)" == Linux ]] || { echo 'This installer supports Linux; use the binary directly on other platforms.' >&2; exit 1; }
 
 if [[ -z "$task_binary" && -z "$task_version" && -f "$task_source_dir/go.mod" ]]; then
-  command -v go >/dev/null || { echo 'Build with Go 1.23+, or pass --local /path/to/udpbrutal.' >&2; exit 1; }
+  command -v go >/dev/null || { echo 'Build with Go 1.26+, or pass --local /path/to/udpbrutal.' >&2; exit 1; }
   task_download_dir="$(mktemp -d)"
   task_binary="$task_download_dir/udpbrutal"
   (cd -- "$task_source_dir" && CGO_ENABLED=0 go build -trimpath -o "$task_binary" ./cmd/udpbrutal)

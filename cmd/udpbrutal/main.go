@@ -41,7 +41,8 @@ The default command is client.
   -h, --help             Show help
 
 Config search: ./config.{yaml,yml,json}, ~/.udpbrutal/, /etc/udpbrutal/
-Transport is plaintext UDP. TLS, ACME, QUIC and obfuscation are not used.`)
+Transport uses the HY2 QUIC engine with a plaintext handshake and unprotected packets.
+TLS, ACME and obfuscation are not used.`)
 }
 func run(args []string) error {
 	mode := "client"
@@ -136,7 +137,7 @@ func run(args []string) error {
 			return err
 		}
 		defer s.Close()
-		slog.Info("UDPBrutal server listening", "listen", s.Addr(), "transport", "plaintext UDP")
+		slog.Info("UDPBrutal server listening", "listen", s.Addr(), "transport", "Hysteria plaintext profile")
 		return s.Serve(ctx)
 	}
 	var cfg config.Client

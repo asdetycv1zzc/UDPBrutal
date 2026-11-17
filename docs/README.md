@@ -2,11 +2,11 @@
 
 [中文文档](README.zh.md) · [Project Home](../README.md)
 
-UDPBrutal provides a local SOCKS5 proxy, fixed TCP/UDP forwarding, and reverse TCP/UDP port mapping. Client and server communicate over a standalone plaintext UDP tunnel using Hysteria2's Brutal congestion controller.
+UDPBrutal provides a local SOCKS5 proxy, fixed TCP/UDP forwarding, and reverse TCP/UDP port mapping. Client and server use the pinned Hysteria2 core and QUIC engine, with a replacement plaintext handshake and unprotected packets. TCP uses native streams; UDP uses native unreliable DATAGRAMs and the original Hysteria fragmenter.
 
 ## Installation
 
-Go 1.23 or newer is required to build from source. Access to a private repository requires an authorized GitHub account.
+Go 1.26 or newer is required to build from source. Access to a private repository requires an authorized GitHub account.
 
 ```bash
 git clone https://github.com/asdetycv1zzc/UDPBrutal.git
@@ -93,7 +93,7 @@ TCP connections to server port `18080` are forwarded to the client's local TCP p
 
 `listen` belongs to the server and `remote` belongs to the client. A reverse-only client can omit `socks5`. TCP and UDP may use the same port number.
 
-Each UDP source gets an independent stream and connected target socket. Idle associations expire after the configured timeout. Reverse listeners are registered together; a bind failure rolls back that registration. Listeners are released when their tunnel closes and registered again after reconnection. Existing TCP streams do not survive a reconnect.
+Each UDP source gets an independent session and connected target socket. Its packets use native unreliable DATAGRAMs. Idle associations expire after the configured timeout. Reverse listeners are registered together; a bind failure rolls back that registration. Listeners are released when their tunnel closes and registered again after reconnection. Existing TCP streams do not survive a reconnect.
 
 Allow the server's tunnel UDP port and the TCP/UDP mapping ports through the surrounding network. The client initiates the tunnel and needs no public inbound port.
 
@@ -124,23 +124,57 @@ Complete examples are available for the [server](../examples/server.yaml), [clie
 
 Client mode is the default. Without `-c`, configuration is loaded from `config.yaml`, `config.yml`, or `config.json` in the current directory, then `~/.udpbrutal/`, then `/etc/udpbrutal/`.
 
-`bandwidth.up` sets the local sending rate; `bandwidth.down` caps the peer's sending rate. Units are decimal bps/kbps/mbps/gbps/tbps. The sending default is 100 mbps. Omitting a receive cap adds no extra limit. Set `bandwidth.disableLossCompensation: true` to keep Brutal's ACK rate at 1.
+`bandwidth.up` sets the local sending rate; `bandwidth.down` participates in the original peer-rate negotiation. Units are decimal bps/kbps/mbps/gbps/tbps. Omitted rates retain the upstream automatic-control behavior; a 100 mbps default is not injected. Set `bandwidth.disableLossCompensation: true` to keep Brutal's ACK rate at 1 when Brutal is selected.
 
-The UDP tunnel defaults to a 30-second idle timeout and 2-second keepalive. Forwarded UDP associations default to a 60-second idle timeout. Configuration parsing rejects unknown fields.
+The source defaults are a 30-second QUIC idle timeout and 10-second client keepalive. Forwarded UDP associations default to a 60-second idle timeout. Configuration parsing rejects unknown fields.
+
+### QUIC and congestion settings
+
+Use Hysteria-style `quic` settings, for example:
+
+```yaml
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  keepAlivePeriod: 10s
+  disablePathMTUDiscovery: false
+```
+
+`maxIncomingStreams` configures the native stream limit. For reverse TCP the
+client explicitly enables server-initiated bidirectional streams (default 1024
+when mappings are configured), because upstream HTTP/3 otherwise disables them.
+
+Known bandwidth selects the original Brutal path. When bandwidth is omitted or
+the server chooses automatic control, the source BBR/Reno selection applies;
+`congestion.type` and `congestion.bbrProfile` pass through the upstream validators.
+
+The old `transport.udp.idleTimeout` setting moves to `quic.maxIdleTimeout`.
+The former custom-transport `handshakeTimeout` and `maxSessions` settings are
+removed; the original QUIC engine now owns handshake timing and stream limits.
+
+There is no fixed 1200-byte outer UDP ceiling. The source's 1280-byte initial
+packet setting, fallback and MTU probing are distinct from the original
+1200-byte DATAGRAM-frame limit. The original 4096-byte application UDP buffers
+remain in the Hysteria core and SOCKS/UDP-forwarding adapters.
 
 ## Compatibility
 
 The command names, configuration layout, and Linux installation layout follow Hysteria2 conventions. UDPBrutal uses an independent plaintext transport and requires UDPBrutal at both ends.
 
-Hysteria2's TLS, ACME, obfuscation, QUIC, HTTP proxy, TUN, transparent proxy, ACL, and BBR configuration are outside this implementation. A complete Hysteria2 configuration cannot be used directly.
+This revision also changes the earlier UB01 prototype's wire format. Upgrade both UDPBrutal endpoints together; the old custom transport and the new plaintext QUIC profile do not interoperate.
 
-UDP datagrams retain their boundaries but travel through reliable multiplexed streams. Tunnel loss therefore causes retransmissions and shared head-of-line blocking, unlike Hysteria2's QUIC DATAGRAM delivery. MTU discovery and NAT address migration are not implemented.
+TLS, ACME and obfuscation are excluded by design. The CLI currently exposes SOCKS5, TCP/UDP forwarding and the reverse extension; HTTP proxy, TUN, transparent proxy and ACL modes are not exposed. The original QUIC settings and BBR/Reno fallback are retained. A complete Hysteria2 configuration cannot be used directly.
+
+The original native stream and DATAGRAM implementations now carry traffic. UDP datagrams are not retransmitted through a shared reliable byte stream. QUIC stream/connection flow control, ACK and loss processing, and path MTU discovery are pinned upstream code. The source Hysteria core's path-manager setting is preserved; TLS-specific resumption and fingerprinting are unavailable.
 
 See [PROTOCOL.md](../PROTOCOL.md) for wire behavior and [NOTICE.md](../NOTICE.md) for the pinned source references and adaptation boundaries.
 
 ## Validation Scope
 
-Local compilation and static analysis have been completed. Proxy traffic, lossy networks, and multiple-source forwarding have not been verified end to end. Cross-platform runtime support remains unverified. The repository includes no functional test suite, and builds require a manual request.
+This rewritten transport has not been compiled, container-built or run. Source hashes, syntax/formatting, dependency imports and static review can be checked against the pinned upstream revision; these do not establish runtime correctness. Proxy traffic, losses, reconnection and cross-platform behavior remain unverified. No functional test suite was added or run, and builds still require a manual request.
 
 ## Docker Compose
 

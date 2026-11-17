@@ -8,9 +8,15 @@ bandwidth:
 
 transport:
   type: udp
-  udp:
-    idleTimeout: 30s
-    handshakeTimeout: 5s
+
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  keepAlivePeriod: 10s
+  disablePathMTUDiscovery: false
 
 socks5:
   listen: 127.0.0.1:1080
@@ -24,13 +30,12 @@ socks5:
 #     remote: internal.example.com:80
 # udpForwarding:
 #   - listen: 127.0.0.1:5353
-#     remote: 1.1.1.1:53
+#     remote: internal.example.com:53
 #     timeout: 60s
-
 # reverseTCP:
-#   - listen: 0.0.0.0:18080       # 服务器监听
-#     remote: 127.0.0.1:8080     # 客户端本地服务
+#   - listen: 0.0.0.0:18080
+#     remote: 127.0.0.1:8080
 # reverseUDP:
-#   - listen: 0.0.0.0:15353       # 服务器监听
-#     remote: 127.0.0.1:5353     # 客户端本地 UDP 服务
+#   - listen: 0.0.0.0:15353
+#     remote: 127.0.0.1:5353
 #     timeout: 60s

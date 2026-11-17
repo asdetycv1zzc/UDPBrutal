@@ -158,6 +158,7 @@ func (d *connectionObserver) run(interval time.Duration) {
 	defer ticker.Stop()
 	previous := d.conn.ConnectionStats()
 	previousSocketBytes := uint64(0)
+	var previousRecovery quic.DiagnosticSnapshot
 	last := time.Now()
 	for {
 		select {
@@ -175,7 +176,10 @@ func (d *connectionObserver) run(interval time.Duration) {
 			"quic_rx_mbps", diagnosticMbps(stats.BytesReceived-previous.BytesReceived, elapsed),
 			"quic_tx_packets", stats.PacketsSent-previous.PacketsSent, "quic_rx_packets", stats.PacketsReceived-previous.PacketsReceived,
 			"socket_tx_mbps", diagnosticMbps(x.SocketWriteBytes-previousSocketBytes, elapsed),
-			"quic_lost_delta", int64(stats.PacketsLost)-int64(previous.PacketsLost),
+			"recovery_lost_delta", x.LossDeclaredPackets-previousRecovery.LossDeclaredPackets,
+			"recovery_lost_bytes_delta", x.LossDeclaredBytes-previousRecovery.LossDeclaredBytes,
+			"recovery_spurious_delta", x.SpuriousLossPackets-previousRecovery.SpuriousLossPackets,
+			"pto_requeued_delta", x.PTORequeuedPackets-previousRecovery.PTORequeuedPackets,
 			"srtt_ms", diagnosticMS(stats.SmoothedRTT), "latest_rtt_ms", diagnosticMS(stats.LatestRTT),
 			"snapshot_ready", x.Ready, "loop_age_ms", diagnosticMS(x.LoopAge),
 			"ack_age_ms", diagnosticMS(x.AckAge), "packet_age_ms", diagnosticMS(x.PacketAge),
@@ -189,6 +193,7 @@ func (d *connectionObserver) run(interval time.Duration) {
 			"socket_write_age_ms", diagnosticMS(x.SocketWriteAge), "socket_write_calls", x.SocketWriteCalls, "socket_write_errors", x.SocketWriteErrors)
 		previous = stats
 		previousSocketBytes = x.SocketWriteBytes
+		previousRecovery = x
 		d.streams.Range(func(key, value any) bool {
 			r := value.(*relayObserver)
 			outStage, outWait := r.toTunnel.snapshot()

@@ -220,9 +220,35 @@ docker-compose logs -f udpbrutal
 | buffered / stream_credit / conn_credit | 流内等待发送的字节和剩余流控额度；仅在 send_ready/conn_credit_ready 为 true 时解释对应值 |
 | receive_offset / receive_highest | 已读取位置与最高收到位置；需结合 to_local_stage 和 receive_ready 判断是否存在等待按序交付 |
 | sample_ms | 实际采样间隔；异常变长也可能是调度或日志输出受阻，不能单独据此认定 GC 或网络故障 |
-| quic_lost_delta | 原生净判丢计数变化，确认误判后可能为负值；不是线路物理丢包率 |
+| recovery_lost_delta / recovery_lost_bytes_delta | 恢复引擎按包数/时间阈值判丢的包数和字节增量，包含 PMTU 探测包；不是线路物理丢包率 |
+| recovery_spurious_delta / pto_requeued_delta | 已判丢后又被 ACK 的包数，以及 PTO 重新排队的包数；两者独立计数，不从前一项相减 |
 
 诊断包含轻量计数、时钟读取和可用时的非阻塞流状态快照，启用后有额外开销。它不输出逐包日志或数据内容，不调用发送唤醒，不修改拥塞或流控决定；关闭时不创建采样器，也不包装反向 TCP 的逐次读写。不要把空闲连接的旧快照当作故障。
+
+恢复计数从首次开启诊断采样时开始，并与 `loop_age_ms` 一起解释。旧版本的 `quic_lost_delta` 来自上游内置 CUBIC 的统计；使用 Brutal 等外部控制器时不会更新，因而恒为 0 也不能证明没有丢包。新版本直接观察恢复事件，不依赖拥塞控制器更新统计。
+
+若活动流仍有待发送数据和流控额度，同时 `inflight` 达到 `cwnd`、ACK 长时间没有进展、`pto_count` 上升，则发送方在等待确认及超时探测。它描述了停顿机制，不能单独确定最初的丢包位置。成功的 socket 写入不保证报文上网或到达对端；`quic_rx_mbps` 在连接分派之后计数，且按两位小数显示，不能替代 socket 收包计数。
+
+两端诊断显示 `gso=true` 时，可先在两端已有的 `quic` 配置中合并以下选项，再重启进程；已有镜像支持此选项，无需为修改配置重建镜像：
+
+```yaml
+quic:
+  disableGSO: true
+```
+
+```bash
+docker-compose restart udpbrutal
+```
+
+确认新日志为 `gso=false` 后，沿用出现问题时的传输方向、带宽和端口。关闭 GSO 仅用于区分批量发送路径，可能增加 CPU 开销；结果变化本身也不足以证明驱动缺陷。
+
+如果仍出现停顿，在两端宿主机同时捕获 UDP 头部，并保留对应诊断日志。以下命令使用当前示例隧道端口；如有修改，替换 `443`：
+
+```bash
+tcpdump -i any -nn -s 128 -B 4096 -w /tmp/udpbrutal.pcap 'udp port 443'
+```
+
+捕获一次停顿后按 Ctrl+C，分别标注服务器和客户端文件，并保留 tcpdump 结束时的捕获丢包统计。抓包用于区分发送端、链路、接收宿主机与连接分派；GSO 和校验和卸载可能影响主机侧抓包的显示，不能把大包或显示的校验和异常直接当成线路错误。
 
 ## 传输与验证范围
 

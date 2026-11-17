@@ -20,8 +20,8 @@ UDPBrutal 的目标是直接保留 Hysteria2 的代理与 QUIC 传输机制，�
 | internal/socks5/server.go | app/internal/socks5/server.go | 字节一致 |
 | third_party/socks5/ | txthinking/socks5 的 socks5.go、server_side.go、util.go、init.go、LICENSE | 原始编解码文件与许可字节一致；本地最小 go.mod 无第三方依赖 |
 | internal/forwarding/ | app/internal/forwarding/ | TCP/UDP 固定转发代码字节一致 |
-| third_party/quic-go/internal/ackhandler/、flow_controller_*.go、mtu_discoverer.go | 同名上游文件 | 原有文件字节一致；ACK/loss、流控与路径 MTU 算法保持原样；另增只读诊断方法 |
-| third_party/quic-go/connection.go、send_queue.go、diagnostics.go、internal/ackhandler/diagnostics.go | 原连接/发送队列及新增观测代码 | 默认关闭的被动状态采样、ACK 时间戳、用户态收包丢弃计数和 socket 写入计时；不改变发送唤醒、恢复、流控或调度算法 |
+| third_party/quic-go/internal/ackhandler/、flow_controller_*.go、mtu_discoverer.go | 同名上游文件 | 除 sent_packet_handler.go 新增可选恢复计数 hook 外，原有文件字节一致；ACK/loss、流控与路径 MTU 算法保持原样 |
+| third_party/quic-go/connection.go、send_queue.go、diagnostics.go、internal/ackhandler/diagnostics.go、internal/ackhandler/sent_packet_handler.go | 原连接/发送队列/恢复引擎及新增观测代码 | 默认关闭的被动状态采样、ACK 时间戳、用户态收包丢弃计数、socket 写入计时，以及独立于控制器的判丢/误判/PTO 排队计数；不改变发送唤醒、恢复、流控或调度算法 |
 | third_party/quic-go/internal/handshake/plaintext_*.go | 新增适配 | 明文交换原 transport parameters；包内容和头部直接复制，不派生密钥或生成密码学标签 |
 | third_party/quic-go/packet_packer.go、packet_unpacker.go、server.go | 同名上游文件 | 封包和解析跳过加密包头采样；适配无标签的小 ACK/PING 和错误响应包 |
 | third_party/quic-go/crypto_stream.go | 同名上游文件 | 关闭依赖 TLS ClientHello 的切分/混淆 |

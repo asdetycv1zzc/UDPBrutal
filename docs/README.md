@@ -250,9 +250,35 @@ These observers help locate the stall; they are not a stall fix. Diagnostics are
 | buffered / stream_credit / conn_credit | Pending stream data and remaining send credit; only interpret values whose corresponding Ready flag is true |
 | receive_offset / receive_highest | Consumed offset and highest received offset, interpreted with receive_ready and the relay IO stage |
 | sample_ms | Actual report interval; scheduling and blocked log output can both delay the reporter |
-| quic_lost_delta | Change in the native net-loss counter; spurious-loss correction can make it negative. This is not a physical path-loss rate |
+| recovery_lost_delta / recovery_lost_bytes_delta | Packets and bytes declared lost by recovery's packet/time thresholds, including PMTU probes; not a physical path-loss rate |
+| recovery_spurious_delta / pto_requeued_delta | Previously declared-lost packets subsequently ACKed, and packets requeued for PTO; independent counters, not subtracted from the preceding fields |
 
 The enabled observer adds counters, clock reads and nonblocking stream snapshots. It emits no per-packet logs or payloads and does not change congestion/flow-control decisions or schedule sends. With diagnostics disabled, there is no reporter or per-IO relay wrapper.
+
+Recovery counters start at the first enabled diagnostic snapshot and must be interpreted with `loop_age_ms`. Earlier versions used `quic_lost_delta` from upstream's built-in CUBIC statistics. External controllers such as Brutal do not update that counter, so a constant zero does not establish zero loss. The current fields observe recovery events independently of the congestion controller.
+
+If an active stream has pending data and send credit, while `inflight` reaches `cwnd`, ACK progress stops and `pto_count` rises, the sender is waiting for acknowledgments and timeout probes. This identifies the pause mechanism, not the original drop location. Successful socket writes do not prove wire delivery. `quic_rx_mbps` is counted after connection dispatch and rounded to two decimal places; it is not a raw socket receive counter.
+
+When both endpoints report `gso=true`, merge this option into each endpoint's existing `quic` configuration and restart the processes. Existing images already support this option, so changing the configuration requires no image rebuild:
+
+```yaml
+quic:
+  disableGSO: true
+```
+
+```bash
+docker-compose restart udpbrutal
+```
+
+Confirm `gso=false` in the new logs, keeping the original transfer direction, bandwidth and ports. Disabling GSO isolates the batched send path and may increase CPU use; a changed result alone does not establish a driver defect.
+
+If pauses persist, capture UDP headers simultaneously on both hosts and retain matching diagnostic logs. Replace `443` if the tunnel uses another port:
+
+```bash
+tcpdump -i any -nn -s 128 -B 4096 -w /tmp/udpbrutal.pcap 'udp port 443'
+```
+
+After one pause, stop with Ctrl+C, label the server/client files, and retain tcpdump's capture-drop summary. Captures distinguish sender, path, receiving host and connection dispatch. GSO and checksum offload can affect host-side captures; an oversized packet or displayed checksum mismatch alone is not evidence of a wire error.
 
 ## Validation Scope
 

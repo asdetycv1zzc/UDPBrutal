@@ -49,6 +49,10 @@ type DiagnosticSnapshot struct {
 	CongestionWindow        int64
 	PTOCount                uint32
 	TrackedPackets          int
+	LossDeclaredPackets     uint64
+	LossDeclaredBytes       uint64
+	SpuriousLossPackets     uint64
+	PTORequeuedPackets      uint64
 	SendMode                string
 	SendQueueLen            int
 	ReceiveQueueDrops       uint64
@@ -149,6 +153,10 @@ func (c *Conn) DiagnosticSnapshot() DiagnosticSnapshot {
 		out.CongestionWindow = s.recovery.CongestionWindow
 		out.PTOCount = s.recovery.PTOCount
 		out.TrackedPackets = s.recovery.TrackedPackets
+		out.LossDeclaredPackets = s.recovery.LossDeclaredPackets
+		out.LossDeclaredBytes = s.recovery.LossDeclaredBytes
+		out.SpuriousLossPackets = s.recovery.SpuriousLossPackets
+		out.PTORequeuedPackets = s.recovery.PTORequeuedPackets
 		out.SendMode = s.recovery.SendMode
 		out.SendQueueLen = s.queueLen
 		out.GSO = s.gso

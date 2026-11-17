@@ -126,6 +126,7 @@ type sentPacketHandler struct {
 	congestionMutex sync.RWMutex
 	rttStats        *utils.RTTStats
 	connStats       *utils.ConnectionStats
+	diagnostics     *recoveryDiagnosticCounters // optional; owned by the connection loop
 
 	// The number of times a PTO has been sent without receiving an ack.
 	ptoCount uint32
@@ -640,6 +641,9 @@ func (h *sentPacketHandler) detectSpuriousLosses(ack *wire.AckFrame, ackTime mon
 	for _, pn := range spuriousLosses {
 		h.lostPackets.Delete(pn)
 	}
+	if h.diagnostics != nil {
+		h.diagnostics.spuriousLosses += uint64(len(spuriousLosses))
+	}
 	lossDelay := max(
 		max(h.rttStats.LatestRTT(), h.rttStats.SmoothedRTT())*time.Duration(8+h.timeThresholdEighths)/8,
 		protocol.TimerGranularity,
@@ -1022,6 +1026,10 @@ func (h *sentPacketHandler) detectLostPackets(now monotime.Time, encLevel protoc
 			}
 			h.hist.DeclareLost(pn)
 			if !p.isPathProbePacket && p.IsAckEliciting() {
+				if h.diagnostics != nil {
+					h.diagnostics.lostPackets++
+					h.diagnostics.lostBytes += uint64(p.Length)
+				}
 				// the bytes in flight need to be reduced no matter if the frames in this packet will be retransmitted
 				h.removeFromBytesInFlight(p)
 				h.queueFramesForRetransmission(p)
@@ -1255,6 +1263,9 @@ func (h *sentPacketHandler) QueueProbePacket(space protocol.PacketNumberSpace) b
 	// Keep track of acknowledged frames instead.
 	// Call DeclareLost before queueFramesForRetransmission, which clears the packet's frames.
 	h.hist.DeclareLost(pn)
+	if h.diagnostics != nil {
+		h.diagnostics.ptoRequeuedPackets++
+	}
 	h.removeFromBytesInFlight(p)
 	h.queueFramesForRetransmission(p)
 	return true

@@ -42,7 +42,7 @@ func StartClient(parent context.Context, cfg config.Client) (*Client, error) {
 	}
 	ctx, cancel := context.WithCancel(parent)
 	c := &Client{cfg: cfg, ctx: ctx, cancel: cancel, done: make(chan struct{})}
-	c.reverse = newReverseClient(ctx, cfg.ReverseTCP, cfg.ReverseUDP)
+	c.reverse = newReverseClient(ctx, cfg.ReverseTCP, cfg.ReverseUDP, cfg.ReverseUDPOptions)
 	if err := c.connect(); err != nil {
 		cancel()
 		c.reverse.Close()

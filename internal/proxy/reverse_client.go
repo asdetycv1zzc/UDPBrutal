@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/apernet/hysteria/core/v2/extension"
@@ -16,10 +17,16 @@ import (
 
 type reverseClient struct {
 	ctx      context.Context
+	cancel   context.CancelFunc
 	tcp, udp []config.Forward
+	shards   [32]reverseClientShard
+	budget   udpBudget
+	expiry   *udpExpiry
+	closed   atomic.Bool
+}
+type reverseClientShard struct {
 	mu       sync.Mutex
 	sessions map[reverseSessionKey]*reverseUDPSession
-	closed   bool
 }
 type reverseSessionKey struct {
 	conn  *quic.Conn
@@ -27,15 +34,23 @@ type reverseSessionKey struct {
 	index uint16
 }
 type reverseUDPSession struct {
-	owner    *reverseClient
-	key      reverseSessionKey
-	incoming chan *extension.UDPMessage
-	ctx      context.Context
-	cancel   context.CancelFunc
+	owner  *reverseClient
+	key    reverseSessionKey
+	queue  *udpQueue
+	ctx    context.Context
+	cancel context.CancelFunc
+	last   atomic.Int64
+	expiry *udpExpiryEntry
 }
 
-func newReverseClient(ctx context.Context, tcp, udp []config.Forward) *reverseClient {
-	return &reverseClient{ctx: ctx, tcp: tcp, udp: udp, sessions: make(map[reverseSessionKey]*reverseUDPSession)}
+func newReverseClient(parent context.Context, tcp, udp []config.Forward, options config.ReverseUDPOptions) *reverseClient {
+	ctx, cancel := context.WithCancel(parent)
+	r := &reverseClient{ctx: ctx, cancel: cancel, tcp: tcp, udp: udp, budget: udpBudget{options: options}}
+	for i := range r.shards {
+		r.shards[i].sessions = make(map[reverseSessionKey]*reverseUDPSession)
+	}
+	r.expiry = newUDPExpiry(ctx)
+	return r
 }
 func (r *reverseClient) Register(conn *quic.Conn) (registrationReply, error) {
 	ctx, cancel := context.WithTimeout(conn.Context(), 10*time.Second)
@@ -117,8 +132,11 @@ func (r *reverseClient) handleTCP(conn *quic.Conn, stream *quic.Stream) {
 	_ = stream.SetDeadline(time.Time{})
 	relay(tunnel, remote)
 }
-func (r *reverseClient) HandleDatagram(conn *quic.Conn, b []byte) bool {
-	index, message, handled := parseReverseDatagram(b)
+func (r *reverseClient) shard(key reverseSessionKey) *reverseClientShard {
+	return &r.shards[(key.id^uint32(key.index))%uint32(len(r.shards))]
+}
+func (r *reverseClient) HandleDatagram(conn *quic.Conn, data []byte) bool {
+	index, message, handled := parseReverseDatagram(data)
 	if !handled || message == nil {
 		return handled
 	}
@@ -126,41 +144,82 @@ func (r *reverseClient) HandleDatagram(conn *quic.Conn, b []byte) bool {
 		return true
 	}
 	key := reverseSessionKey{conn: conn, id: message.SessionID, index: index}
-	r.mu.Lock()
-	if r.closed {
-		r.mu.Unlock()
+	shard := r.shard(key)
+	shard.mu.Lock()
+	if r.closed.Load() || r.ctx.Err() != nil || conn.Context().Err() != nil {
+		shard.mu.Unlock()
 		return true
 	}
-	session := r.sessions[key]
+	session := shard.sessions[key]
 	if session == nil {
+		if !r.budget.newSession() {
+			shard.mu.Unlock()
+			return true
+		}
 		ctx, cancel := context.WithCancel(conn.Context())
-		session = &reverseUDPSession{owner: r, key: key, incoming: make(chan *extension.UDPMessage, 1024), ctx: ctx, cancel: cancel}
-		r.sessions[key] = session
+		session = &reverseUDPSession{owner: r, key: key, queue: newUDPQueue(&r.budget), ctx: ctx, cancel: cancel}
+		session.last.Store(udpNow())
+		shard.sessions[key] = session
+		session.expiry = r.expiry.add(session.last.Load()+int64(udpTimeout(r.udp[index].Timeout)), session.expire)
 		go session.run()
 	}
-	select {
-	case session.incoming <- message:
-	default:
+	if session.ctx.Err() != nil {
+		shard.mu.Unlock()
+		return true
 	}
-	r.mu.Unlock()
+	session.last.Store(udpNow())
+	session.queue.push(udpQueuedPacket{message: message})
+	shard.mu.Unlock()
 	return true
 }
 func (r *reverseClient) Close() {
-	r.mu.Lock()
-	r.closed = true
-	for _, s := range r.sessions {
-		s.cancel()
+	if r.closed.Swap(true) {
+		return
 	}
-	r.mu.Unlock()
+	r.cancel()
+	for i := range r.shards {
+		shard := &r.shards[i]
+		shard.mu.Lock()
+		for key, s := range shard.sessions {
+			delete(shard.sessions, key)
+			r.budget.sessions.Add(-1)
+			s.cancel()
+			s.queue.close()
+			r.expiry.remove(s.expiry)
+		}
+		shard.mu.Unlock()
+	}
+}
+func (s *reverseUDPSession) expire(now int64) int64 {
+	shard := s.owner.shard(s.key)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+	if shard.sessions[s.key] != s {
+		return 0
+	}
+	next := s.last.Load() + int64(udpTimeout(s.owner.udp[s.key.index].Timeout))
+	if next > now {
+		return next
+	}
+	// Keep the slot until both IO goroutines have stopped. A native
+	// SendDatagram may be waiting for congestion/backpressure to clear; freeing
+	// its slot early would permit unbounded replacement goroutines.
+	s.cancel()
+	s.queue.close()
+	return 0
 }
 func (s *reverseUDPSession) run() {
 	defer s.cancel()
+	defer s.queue.close()
 	defer func() {
-		s.owner.mu.Lock()
-		if s.owner.sessions[s.key] == s {
-			delete(s.owner.sessions, s.key)
+		shard := s.owner.shard(s.key)
+		shard.mu.Lock()
+		if shard.sessions[s.key] == s {
+			delete(shard.sessions, s.key)
+			s.owner.budget.sessions.Add(-1)
 		}
-		s.owner.mu.Unlock()
+		shard.mu.Unlock()
+		s.owner.expiry.remove(s.expiry)
 	}()
 	cfg := s.owner.udp[s.key.index]
 	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
@@ -171,59 +230,49 @@ func (s *reverseUDPSession) run() {
 	}
 	udp := conn.(*net.UDPConn)
 	defer udp.Close()
+	stop := context.AfterFunc(s.ctx, func() { udp.Close() })
+	defer stop()
 	done := make(chan struct{})
-	activity := make(chan struct{}, 1)
 	go func() {
 		defer close(done)
-		buf := make([]byte, extension.MaxUDPSize)
+		sender := extension.UDPSender{Conn: s.key.conn, Prefix: reversePrefix(s.key.index)}
+		address := udp.RemoteAddr().String()
+		buffer := make([]byte, extension.MaxUDPSize+1)
 		for {
-			n, err := udp.Read(buf)
+			n, err := udp.Read(buffer)
 			if err != nil {
+				s.cancel()
 				return
 			}
-			message := &extension.UDPMessage{SessionID: s.key.id, FragCount: 1, Addr: udp.RemoteAddr().String(), Data: buf[:n]}
-			_ = extension.SendUDP(s.key.conn, reversePrefix(s.key.index), message)
-			select {
-			case activity <- struct{}{}:
-			default:
+			if n > extension.MaxUDPSize {
+				continue
+			}
+			s.last.Store(udpNow())
+			message := extension.UDPMessage{SessionID: s.key.id, FragCount: 1, Addr: address, Data: buffer[:n]}
+			if err := sender.Send(&message); err != nil && s.key.conn.Context().Err() != nil {
+				s.cancel()
+				return
 			}
 		}
 	}()
 	defer func() { udp.Close(); <-done }()
-	idle := udpTimeout(cfg.Timeout)
-	timer := time.NewTimer(idle)
-	defer timer.Stop()
-	reset := func() {
-		if !timer.Stop() {
-			select {
-			case <-timer.C:
-			default:
-			}
-		}
-		timer.Reset(idle)
-	}
+	batchSize := s.owner.budget.options.BatchSize
+	writer := newUDPWriter(udp, batchSize)
+	writes := make([]udpWritePacket, 0, batchSize)
 	var defrag extension.Defragger
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-s.owner.ctx.Done():
-			return
-		case <-done:
-			return
-		case <-timer.C:
-			return
-		case <-activity:
-			reset()
-		case message := <-s.incoming:
-			reset()
-			packet := defrag.Feed(message)
-			if packet == nil {
-				continue
-			}
-			if _, err := udp.Write(packet.Data); err != nil {
+	consume := func(p udpQueuedPacket) {
+		message := defrag.Feed(p.message)
+		if message != nil && len(message.Data) <= extension.MaxUDPSize {
+			writes = append(writes, udpWritePacket{data: message.Data})
+		}
+	}
+	for receiveUDPBatch(s.ctx, s.queue, batchSize, consume) {
+		if len(writes) > 0 {
+			if _, err := writer.write(writes); err != nil {
 				return
 			}
 		}
+		clear(writes)
+		writes = writes[:0]
 	}
 }

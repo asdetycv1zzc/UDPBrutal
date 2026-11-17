@@ -1496,5 +1496,40 @@
     "revision": "c2b181e0b0e72b077e4b0b7297735af14d1f9929",
     "upstreamPath": "app/internal/forwarding/tcp.go",
     "sha256": "e1e408812fc74c35e6cdd93ad40e9431b79b91043dc7843877c9f2dd860766e0"
+  },
+  {
+    "path": "third_party/socks5/socks5.go",
+    "upstream": "txthinking/socks5",
+    "revision": "4230056ae3012ccd47e9d0699fb0c47c1b924554",
+    "upstreamPath": "socks5.go",
+    "sha256": "945c354c2f0ad6c5a8b53b211b3124cf21acebeffab04bf238ad58b18e264a94"
+  },
+  {
+    "path": "third_party/socks5/server_side.go",
+    "upstream": "txthinking/socks5",
+    "revision": "4230056ae3012ccd47e9d0699fb0c47c1b924554",
+    "upstreamPath": "server_side.go",
+    "sha256": "9f2a89570e0a2fca49956844a1f98fde5cad41ed4350c338b3affde1c8a20f11"
+  },
+  {
+    "path": "third_party/socks5/util.go",
+    "upstream": "txthinking/socks5",
+    "revision": "4230056ae3012ccd47e9d0699fb0c47c1b924554",
+    "upstreamPath": "util.go",
+    "sha256": "27a6eb48c1711ae2a275983a5d0e6a4f09bc393fc6589ef810c16b65d89f43ed"
+  },
+  {
+    "path": "third_party/socks5/init.go",
+    "upstream": "txthinking/socks5",
+    "revision": "4230056ae3012ccd47e9d0699fb0c47c1b924554",
+    "upstreamPath": "init.go",
+    "sha256": "3a93ddb46580941775261051b8babaab29e982586befa7caceadd3231a8a7078"
+  },
+  {
+    "path": "third_party/socks5/LICENSE",
+    "upstream": "txthinking/socks5",
+    "revision": "4230056ae3012ccd47e9d0699fb0c47c1b924554",
+    "upstreamPath": "LICENSE",
+    "sha256": "4ef866e5129e1366d250c6df788ad8ba74a619c3a73490ec8bebfa88830dc39e"
   }
 ]

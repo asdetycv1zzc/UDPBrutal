@@ -35,24 +35,37 @@ func WriteTCPResponse(w io.Writer, ok bool, message string) error {
 }
 func ReadTCPResponse(r io.Reader) (bool, string, error) { return protocol.ReadTCPResponse(r) }
 
-// SendUDP follows core/client/udp.go: first send without fragmentation, then
+// UDPSender follows core/client/udp.go: first send without fragmentation, then
 // split only after the native connection reports DatagramTooLargeError. Prefix
 // bytes belong solely to the reverse extension, never ordinary HY2 messages.
-func SendUDP(conn *quic.Conn, prefix []byte, message *UDPMessage) error {
+type UDPSender struct {
+	Conn   *quic.Conn
+	Prefix []byte
+	buffer []byte
+}
+
+// Send reuses serialization storage, just like the source client's udpConn.
+// One sender belongs to one sending goroutine. The native SendDatagram copies
+// accepted bytes before returning, so this buffer can then be reused safely.
+func (s *UDPSender) Send(message *UDPMessage) error {
 	send := func(m *UDPMessage) error {
-		b := make([]byte, len(prefix)+m.Size())
-		copy(b, prefix)
-		if m.Serialize(b[len(prefix):]) < 0 {
+		n := len(s.Prefix) + m.Size()
+		if cap(s.buffer) < n {
+			s.buffer = make([]byte, max(n, MaxUDPSize+len(s.Prefix)+300))
+		}
+		b := s.buffer[:n]
+		copy(b, s.Prefix)
+		if m.Serialize(b[len(s.Prefix):]) < 0 {
 			return io.ErrShortBuffer
 		}
-		return conn.SendDatagram(b)
+		return s.Conn.SendDatagram(b)
 	}
 	err := send(message)
 	var tooLarge *quic.DatagramTooLargeError
 	if !errors.As(err, &tooLarge) {
 		return err
 	}
-	size := int(tooLarge.MaxDatagramPayloadSize) - len(prefix)
+	size := int(tooLarge.MaxDatagramPayloadSize) - len(s.Prefix)
 	if size <= message.HeaderSize() {
 		return err
 	}

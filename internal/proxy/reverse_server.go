@@ -16,50 +16,36 @@ import (
 )
 
 type reverseServer struct {
-	cfg    config.Reverse
-	mu     sync.Mutex
-	peers  map[*quic.Conn]*reversePeer
-	closed bool
+	cfg     config.Reverse
+	options config.ReverseUDPOptions
+	mu      sync.RWMutex
+	peers   map[*quic.Conn]*reversePeer
+	closed  bool
 }
 type reversePeer struct {
-	owner    *reverseServer
-	conn     *quic.Conn
-	control  *quic.Stream
-	ctx      context.Context
-	cancel   context.CancelFunc
-	tcp      []net.Listener
-	udp      []*reverseBinding
-	mu       sync.Mutex
-	sessions map[uint32]*reverseRoute
-	sources  map[string]uint32
-	nextID   uint32
-	done     chan struct{}
-	once     sync.Once
-	closed   bool
-}
-type reverseBinding struct {
-	socket  *net.UDPConn
-	index   uint16
-	timeout time.Duration
-}
-type reverseRoute struct {
-	id      uint32
-	key     string
-	binding *reverseBinding
-	source  *net.UDPAddr
-	last    time.Time
-	defrag  extension.Defragger
+	owner   *reverseServer
+	conn    *quic.Conn
+	control *quic.Stream
+	ctx     context.Context
+	cancel  context.CancelFunc
+	tcp     []net.Listener
+	udp     []*reverseBinding
+	mu      sync.RWMutex
+	budget  udpBudget
+	expiry  *udpExpiry
+	done    chan struct{}
+	once    sync.Once
+	closed  bool
 }
 
-func newReverseServer(cfg config.Reverse) *reverseServer {
-	return &reverseServer{cfg: cfg, peers: make(map[*quic.Conn]*reversePeer)}
+func newReverseServer(cfg config.Reverse, options config.ReverseUDPOptions) *reverseServer {
+	return &reverseServer{cfg: cfg, options: options, peers: make(map[*quic.Conn]*reversePeer)}
 }
 func (s *reverseServer) HandleStream(conn *quic.Conn, kind uint64, stream *quic.Stream) (bool, error) {
 	if kind != reverseControlType {
 		return false, nil
 	}
-	// The HY2 dispatcher holds its authentication mutex here. Registration must
-	// run independently, rather than holding that mutex for the control lifetime.
+	// Registration owns the stream for its lifetime; return to the dispatcher.
 	go s.register(conn, stream)
 	return true, nil
 }
@@ -85,7 +71,8 @@ func (s *reverseServer) register(conn *quic.Conn, stream *quic.Stream) {
 		return
 	}
 	peerContext, peerCancel := context.WithCancel(conn.Context())
-	p := &reversePeer{owner: s, conn: conn, control: stream, ctx: peerContext, cancel: peerCancel, sessions: make(map[uint32]*reverseRoute), sources: make(map[string]uint32), nextID: 1, done: make(chan struct{})}
+	p := &reversePeer{owner: s, conn: conn, control: stream, ctx: peerContext, cancel: peerCancel, budget: udpBudget{options: s.options}, done: make(chan struct{})}
+	p.expiry = newUDPExpiry(peerContext)
 	s.mu.Lock()
 	if s.closed || s.peers[conn] != nil {
 		s.mu.Unlock()
@@ -121,6 +108,10 @@ func (s *reverseServer) register(conn *quic.Conn, stream *quic.Stream) {
 		reply.TCP = append(reply.TCP, l.Addr().String())
 	}
 	for i, f := range request.UDP {
+		if f.Timeout < 0 || f.Timeout > 24*time.Hour {
+			reject(fmt.Errorf("reverse UDP timeout must be in 0..24h"))
+			return
+		}
 		addr, err := net.ResolveUDPAddr("udp", f.Listen)
 		if err != nil {
 			reject(err)
@@ -137,7 +128,7 @@ func (s *reverseServer) register(conn *quic.Conn, stream *quic.Stream) {
 			socket.Close()
 			return
 		}
-		p.udp = append(p.udp, &reverseBinding{socket: socket, index: uint16(i), timeout: udpTimeout(f.Timeout)})
+		p.udp = append(p.udp, newReverseBinding(p, socket, uint16(i), udpTimeout(f.Timeout)))
 		p.mu.Unlock()
 		reply.UDP = append(reply.UDP, socket.LocalAddr().String())
 	}
@@ -154,10 +145,9 @@ func (s *reverseServer) register(conn *quic.Conn, stream *quic.Stream) {
 		slog.Info("reverse TCP listening", "listen", l.Addr())
 	}
 	for _, b := range udpListeners {
-		go p.serveUDP(b)
+		go b.serve()
 		slog.Info("reverse UDP listening", "listen", b.socket.LocalAddr())
 	}
-	go p.cleanupUDP()
 	_, _ = io.Copy(io.Discard, stream)
 }
 func (p *reversePeer) Close() {
@@ -173,7 +163,7 @@ func (p *reversePeer) Close() {
 			l.Close()
 		}
 		for _, b := range udp {
-			b.socket.Close()
+			b.close()
 		}
 		p.control.CancelRead(0)
 		_ = p.control.Close()
@@ -230,77 +220,5 @@ func (p *reversePeer) serveTCP(l net.Listener, index uint64) {
 			_ = stream.SetDeadline(time.Time{})
 			relay(incoming, tunnel)
 		}()
-	}
-}
-func (p *reversePeer) serveUDP(b *reverseBinding) {
-	buf := make([]byte, extension.MaxUDPSize)
-	for {
-		n, source, err := b.socket.ReadFromUDP(buf)
-		if err != nil {
-			return
-		}
-		key := fmt.Sprintf("%d/%s", b.index, source.String())
-		p.mu.Lock()
-		id, ok := p.sources[key]
-		if !ok {
-			id = p.nextID
-			for id == 0 || p.sessions[id] != nil {
-				id++
-			}
-			p.nextID = id + 1
-			p.sources[key] = id
-			p.sessions[id] = &reverseRoute{id: id, key: key, binding: b, source: source}
-		}
-		p.sessions[id].last = time.Now()
-		p.mu.Unlock()
-		message := &extension.UDPMessage{SessionID: id, FragCount: 1, Addr: source.String(), Data: buf[:n]}
-		if err := extension.SendUDP(p.conn, reversePrefix(b.index), message); err != nil {
-			slog.Debug("reverse UDP send dropped", "error", err)
-		}
-	}
-}
-func (s *reverseServer) HandleDatagram(conn *quic.Conn, b []byte) bool {
-	index, message, handled := parseReverseDatagram(b)
-	if !handled || message == nil {
-		return handled
-	}
-	s.mu.Lock()
-	p := s.peers[conn]
-	s.mu.Unlock()
-	if p == nil {
-		return true
-	}
-	p.mu.Lock()
-	route := p.sessions[message.SessionID]
-	if route == nil || route.binding.index != index {
-		p.mu.Unlock()
-		return true
-	}
-	route.last = time.Now()
-	packet := route.defrag.Feed(message)
-	binding, source := route.binding, route.source
-	p.mu.Unlock()
-	if packet != nil {
-		_, _ = binding.socket.WriteToUDP(packet.Data, source)
-	}
-	return true
-}
-func (p *reversePeer) cleanupUDP() {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-p.done:
-			return
-		case now := <-ticker.C:
-			p.mu.Lock()
-			for id, route := range p.sessions {
-				if now.Sub(route.last) > route.binding.timeout {
-					delete(p.sessions, id)
-					delete(p.sources, route.key)
-				}
-			}
-			p.mu.Unlock()
-		}
 	}
 }

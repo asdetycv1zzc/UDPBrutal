@@ -34,7 +34,7 @@ func NewServer(cfg config.Server) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	reverse := newReverseServer(cfg.Reverse)
+	reverse := newReverseServer(cfg.Reverse, cfg.ReverseUDPOptions)
 	up, down, err := config.BandwidthBytes(cfg.Bandwidth)
 	if err != nil {
 		socket.Close()

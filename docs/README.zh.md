@@ -4,7 +4,7 @@
 
 基于 Hysteria2 **Brutal 拥塞控制**的明文 UDP 代理，提供本地 SOCKS5 上网和服务器到客户端的反向端口映射。正向与反向均支持 **TCP 和 UDP**。
 
-Brutal 和 pacer 直接取自 [指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)，仅替换 import 路径；完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
+Brutal 和 pacer 与 [指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)字节一致，包含原始 import 路径；完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
 
 当前直接使用固定版本的 Hysteria2 核心与 QUIC 引擎，保留原生流、DATAGRAM、确认/丢包处理、重传、流控和路径 MTU 探测，仅替换为明文握手和无包保护配置。**不能与未经修改的 Hysteria2 客户端或服务器互通**。反向端口映射是基于原生双向流和 DATAGRAM 的项目扩展。
 
@@ -42,6 +42,24 @@ journalctl -u udpbrutal-server -f
 ```
 
 安装脚本保留已有配置，不自动启动服务。不传 `--local` 时会在源码目录编译；已有 Release 时也支持 `--version vX.Y.Z` 下载相应归档。脚本应从完整源码目录运行，私有仓库的 Release 建议先自行下载再使用 `--local`。
+
+### 依赖下载超时
+
+如果构建提示连接 `proxy.golang.org` 的 `i/o timeout`，可为当前命令选择能访问的 Go 模块代理，例如：
+
+```bash
+GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' go build -trimpath -o udpbrutal ./cmd/udpbrutal
+```
+
+这里的 `|` 表示遇到超时等任何错误时尝试下一来源；默认配置里的逗号只在 HTTP 404/410 时回退。也可以替换为自己的模块代理。无需删除 `go.sum`、清空模块缓存或关闭校验。
+
+使用源码安装脚本时，将变量传入 sudo 后的环境：
+
+```bash
+sudo env GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' bash scripts/install_server.sh
+```
+
+SOCKS5 所需的原始协议编解码已随源码保存，HY2 的 SOCKS5 服务实现保持原样；没有引入未使用的 SOCKS5 独立服务器，因此不再依赖 `go-cache` 或 `runnergroup`。其他 Go 模块及旧版本 Go 自动下载的新工具链仍可能需要联网。已有完整模块缓存时可用 `GOPROXY=off` 禁止模块下载。代理回退规则见 [Go 官方模块文档](https://go.dev/ref/mod#environment-variables)。
 
 ## SOCKS5 正向上网
 
@@ -109,6 +127,31 @@ reverseUDP:
 
 网络需允许服务器的隧道 UDP 端口和需要暴露的 TCP/UDP 映射端口。反向流量由客户端已建立的隧道承载，客户端不需要公网入站端口。
 
+### 反向 UDP 性能与资源配置
+
+客户端和服务器都支持以下本地配置，不参与线路协议协商：
+
+```yaml
+reverseUDPOptions:
+  maxSessions: 4096
+  queuePackets: 64
+  maxQueuedBytes: 16777216
+  batchSize: 32
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| maxSessions | 服务器每条反向隧道、或客户端实例的活动 UDP 来源会话上限，默认 4096 |
+| queuePackets | 客户端每个会话、服务器每个 UDP 映射的队列包数上限，默认 64 |
+| maxQueuedBytes | 上述实例范围内共享的排队字节预算，默认 16 MiB；不含 socket、重组状态、正在处理的数据和其他对象 |
+| batchSize | Linux 每批最多处理的包数，默认 32，范围 1..64；设为 1 使用逐包路径，其他平台使用通用收发 |
+
+队列满或达到字节预算时丢弃新到的数据报；达到会话上限时不创建新会话。不要通过无限扩大队列掩盖拥塞，否则会增加积压时延和内存占用。
+
+发送路径复用序列化缓冲和固定地址；客户端会话表分区，服务器按映射持锁。回包通过有界队列交给独立 UDP 写入协程，统一 DATAGRAM 接收入口不等待目标 socket。过期回收使用单调时钟、到期堆和共享定时器，不再每秒遍历全部会话或为每个客户端会话维护定时器。
+
+Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批量发送；不会等待凑齐一批。批量系统调用不受支持时回退为普通 socket 收发，其他平台保留相同协议和队列行为。反向应用数据报上限仍为原 HY2 的 4096 字节，超过时丢弃，避免转发截断的报文。Brutal、pacer、正向代理与 QUIC 丢包恢复机制保持原始实现。
+
 ## 其他配置与命令
 
 完整示例见 [examples/client.yaml](../examples/client.yaml)、[examples/client-reverse.yaml](../examples/client-reverse.yaml)、[examples/server.yaml](../examples/server.yaml)。
@@ -170,6 +213,14 @@ docker compose logs -f udpbrutal
 ```
 
 首次启动会为 Docker 引擎的本机平台构建镜像，无需预先发布的镜像。宿主机的 `config.yaml` 以只读方式挂载到容器的 `/etc/udpbrutal/config.yaml`；启动前必须先创建该文件。
+
+Docker 构建下载 Go 依赖超时时，可传入模块代理，Compose 会将它转交给 Dockerfile 的构建参数：
+
+```bash
+GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' docker compose up -d --build
+```
+
+单独构建镜像时使用 `docker build --build-arg 'GOPROXY=https://goproxy.cn|https://proxy.golang.org|direct' -t udpbrutal .`。镜像基础层下载使用 Docker 自己的网络设置，不由 GOPROXY 控制。
 
 | 宿主机端口 | 容器端口 | 用途 |
 | --- | --- | --- |

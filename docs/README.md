@@ -29,6 +29,24 @@ journalctl -u udpbrutal-server -f
 
 The installer preserves an existing configuration and leaves starting the service to you. Run it from a complete source checkout.
 
+### Module download timeouts
+
+For an `i/o timeout` reaching `proxy.golang.org`, select a reachable Go module proxy for that command, for example:
+
+```bash
+GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' go build -trimpath -o udpbrutal ./cmd/udpbrutal
+```
+
+Replace the first URL with your own module proxy if appropriate. A pipe (`|`) retries the next source after any error, including a timeout; a comma retries only after HTTP 404/410. Keep `go.sum` and checksum verification enabled. See the [Go module reference](https://go.dev/ref/mod#environment-variables).
+
+To pass this setting through the source installer:
+
+```bash
+sudo env GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' bash scripts/install_server.sh
+```
+
+The original SOCKS5 protocol codecs are included locally, with the HY2 SOCKS5 adapter unchanged. The unused standalone SOCKS5 server is excluded, removing the `go-cache` and `runnergroup` dependencies. Other modules and automatic Go toolchain downloads may still require network access. With a complete module cache, `GOPROXY=off` disables module downloads.
+
 ## SOCKS5 Proxy
 
 Server configuration, `server.yaml`:
@@ -96,6 +114,31 @@ TCP connections to server port `18080` are forwarded to the client's local TCP p
 Each UDP source gets an independent session and connected target socket. Its packets use native unreliable DATAGRAMs. Idle associations expire after the configured timeout. Reverse listeners are registered together; a bind failure rolls back that registration. Listeners are released when their tunnel closes and registered again after reconnection. Existing TCP streams do not survive a reconnect.
 
 Allow the server's tunnel UDP port and the TCP/UDP mapping ports through the surrounding network. The client initiates the tunnel and needs no public inbound port.
+
+### Reverse UDP performance and resource options
+
+Client and server accept the same local settings; these are not negotiated wire fields:
+
+```yaml
+reverseUDPOptions:
+  maxSessions: 4096
+  queuePackets: 64
+  maxQueuedBytes: 16777216
+  batchSize: 32
+```
+
+| Setting | Meaning |
+| --- | --- |
+| maxSessions | Active source-session limit per registered server peer, or per client instance; default 4096 |
+| queuePackets | Packets per client session queue or server mapping queue; default 64 |
+| maxQueuedBytes | Shared queued-byte budget for that scope; default 16 MiB, excluding sockets, reassembly state, packets being processed and other objects |
+| batchSize | Maximum Linux batch size; default 32, range 1..64. Use 1 for ordinary socket IO. Other platforms use the portable path |
+
+New datagrams are dropped when a queue or byte budget is full. New sessions are not created at the session limit. Increasing queues can increase memory use and queueing latency.
+
+Sending reuses serialization buffers, prefixes and fixed address strings. Client session maps are sharded and server routing locks belong to individual mappings. Bounded queues keep local socket writes out of the connection-wide DATAGRAM receive loop. Idle expiry uses a monotonic deadline heap and one shared timer, replacing full-map scans and per-client-session timers.
+
+Linux reverse listeners receive in batches, and reverse UDP writers send batches of already queued packets without waiting to fill a batch. Unsupported batch syscalls fall back to ordinary socket IO. The original 4096-byte application UDP limit remains; larger reverse datagrams are dropped instead of forwarding a truncated packet. Brutal, pacing, the forward proxy and native QUIC loss recovery remain unchanged.
 
 ## Fixed Forwarding
 
@@ -196,6 +239,14 @@ docker compose logs -f udpbrutal
 ```
 
 The first command builds an image for the Docker engine's native platform. No prebuilt image is required. The host's `config.yaml` is mounted read-only at `/etc/udpbrutal/config.yaml`; prepare it before starting Compose.
+
+If module downloads time out during the Docker build, Compose forwards this setting as a build argument:
+
+```bash
+GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' docker compose up -d --build
+```
+
+For a standalone build, use `docker build --build-arg 'GOPROXY=https://goproxy.cn|https://proxy.golang.org|direct' -t udpbrutal .`. Docker base-image downloads use Docker's own network configuration, independently of GOPROXY.
 
 | Host port | Container port | Purpose |
 | --- | --- | --- |

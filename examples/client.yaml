@@ -25,6 +25,11 @@ socks5:
   disableUDP: false
 
 # 以下均可按需取消注释。
+# reverseUDPOptions:
+#   maxSessions: 4096
+#   queuePackets: 64
+#   maxQueuedBytes: 16777216
+#   batchSize: 32
 # tcpForwarding:
 #   - listen: 127.0.0.1:8088
 #     remote: internal.example.com:80

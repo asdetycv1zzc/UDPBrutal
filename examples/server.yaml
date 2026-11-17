@@ -28,5 +28,12 @@ reverse:
   enabled: true
   maxListeners: 16
 
+# 服务器每条反向隧道的 UDP 会话及排队预算；客户端可配置相同字段。
+reverseUDPOptions:
+  maxSessions: 4096
+  queuePackets: 64
+  maxQueuedBytes: 16777216
+  batchSize: 32
+
 disableUDP: false
 udpIdleTimeout: 60s

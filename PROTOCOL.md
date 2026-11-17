@@ -118,6 +118,21 @@ UDP source associations expire on their configured idle timeout. Connection
 or control-stream closure releases listeners and associations. Reconnection
 registers a new set; existing TCP streams are not resumed.
 
+Reverse UDP resource settings are local to each endpoint. Server session IDs
+are unique within a mapping; the mapping index and SessionID identify a route.
+Sending reuses serialization storage while keeping the original codec and
+fragmenter. Local queues have packet and shared byte budgets and drop new
+datagrams when full. Server socket writes occur in per-mapping workers, not
+in the connection-wide DATAGRAM reader. Client maps are sharded, with shared
+deadline-based idle expiry instead of per-session timers or full-table scans.
+
+Linux reverse-port IO supports recvmmsg/sendmmsg via x/net's batch APIs;
+other platforms and unsupported batch syscalls use ordinary UDP sockets.
+Batch writes drain already available messages without waiting to fill a batch.
+These changes retain the existing UBP1 wire format, native unreliable DATAGRAM
+semantics, and original Brutal/pacer. Reverse application datagrams larger
+than MaxUDPSize are dropped, rather than forwarding truncated data.
+
 ## Verification boundary
 
 This transport rewrite has not been compiled, built into images, or exercised

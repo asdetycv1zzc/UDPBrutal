@@ -71,6 +71,8 @@ docker compose up -d --build
 
 The example publishes UDP `443`, reverse TCP `18080`, and reverse UDP `15353`. See the [English](docs/README.md#docker-compose) or [中文](docs/README.zh.md#docker-compose) guide for client mappings, logs, and shutdown.
 
+Module download timed out? See the [build proxy settings](docs/README.md#module-download-timeouts) / [依赖下载超时](docs/README.zh.md#依赖下载超时), including Compose build arguments.
+
 ---
 
 UDPBrutal uses a dedicated plaintext handshake and packet profile and does not interoperate with unmodified Hysteria2. Source attribution and implementation boundaries are documented in [NOTICE.md](NOTICE.md).

@@ -52,19 +52,58 @@ type Forward struct {
 	Remote  string        `yaml:"remote" json:"remote,omitempty"`
 	Timeout time.Duration `yaml:"timeout" json:"timeout,omitempty"`
 }
+
+// ReverseUDPOptions controls local resources used by the reverse extension.
+// The same options are accepted by client and server; they are not wire fields.
+type ReverseUDPOptions struct {
+	MaxSessions    int `yaml:"maxSessions"`
+	QueuePackets   int `yaml:"queuePackets"`
+	MaxQueuedBytes int `yaml:"maxQueuedBytes"`
+	BatchSize      int `yaml:"batchSize"`
+}
+
+func (o *ReverseUDPOptions) FillAndValidate() error {
+	if o.MaxSessions == 0 {
+		o.MaxSessions = 4096
+	}
+	if o.QueuePackets == 0 {
+		o.QueuePackets = 64
+	}
+	if o.MaxQueuedBytes == 0 {
+		o.MaxQueuedBytes = 16 << 20
+	}
+	if o.BatchSize == 0 {
+		o.BatchSize = 32
+	}
+	if o.MaxSessions < 1 || o.MaxSessions > 1<<20 {
+		return errors.New("reverseUDPOptions.maxSessions must be in 1..1048576")
+	}
+	if o.QueuePackets < 1 || o.QueuePackets > 65536 {
+		return errors.New("reverseUDPOptions.queuePackets must be in 1..65536")
+	}
+	if o.MaxQueuedBytes < 4096 || o.MaxQueuedBytes > 1<<30 {
+		return errors.New("reverseUDPOptions.maxQueuedBytes must be in 4096..1073741824")
+	}
+	if o.BatchSize < 1 || o.BatchSize > 64 {
+		return errors.New("reverseUDPOptions.batchSize must be in 1..64")
+	}
+	return nil
+}
+
 type Client struct {
-	Server        string     `yaml:"server"`
-	Auth          string     `yaml:"auth"`
-	Bandwidth     Bandwidth  `yaml:"bandwidth"`
-	Congestion    Congestion `yaml:"congestion"`
-	Transport     Transport  `yaml:"transport"`
-	QUIC          QUIC       `yaml:"quic"`
-	FastOpen      bool       `yaml:"fastOpen"`
-	SOCKS5        SOCKS5     `yaml:"socks5"`
-	TCPForwarding []Forward  `yaml:"tcpForwarding"`
-	UDPForwarding []Forward  `yaml:"udpForwarding"`
-	ReverseTCP    []Forward  `yaml:"reverseTCP"`
-	ReverseUDP    []Forward  `yaml:"reverseUDP"`
+	Server            string            `yaml:"server"`
+	Auth              string            `yaml:"auth"`
+	Bandwidth         Bandwidth         `yaml:"bandwidth"`
+	Congestion        Congestion        `yaml:"congestion"`
+	Transport         Transport         `yaml:"transport"`
+	QUIC              QUIC              `yaml:"quic"`
+	FastOpen          bool              `yaml:"fastOpen"`
+	SOCKS5            SOCKS5            `yaml:"socks5"`
+	TCPForwarding     []Forward         `yaml:"tcpForwarding"`
+	UDPForwarding     []Forward         `yaml:"udpForwarding"`
+	ReverseTCP        []Forward         `yaml:"reverseTCP"`
+	ReverseUDP        []Forward         `yaml:"reverseUDP"`
+	ReverseUDPOptions ReverseUDPOptions `yaml:"reverseUDPOptions"`
 }
 type Auth struct {
 	Type     string `yaml:"type"`
@@ -75,16 +114,17 @@ type Reverse struct {
 	MaxListeners int  `yaml:"maxListeners"`
 }
 type Server struct {
-	Listen                string        `yaml:"listen"`
-	Auth                  Auth          `yaml:"auth"`
-	Bandwidth             Bandwidth     `yaml:"bandwidth"`
-	Congestion            Congestion    `yaml:"congestion"`
-	Transport             Transport     `yaml:"transport"`
-	QUIC                  QUIC          `yaml:"quic"`
-	Reverse               Reverse       `yaml:"reverse"`
-	IgnoreClientBandwidth bool          `yaml:"ignoreClientBandwidth"`
-	DisableUDP            bool          `yaml:"disableUDP"`
-	UDPIdleTimeout        time.Duration `yaml:"udpIdleTimeout"`
+	Listen                string            `yaml:"listen"`
+	Auth                  Auth              `yaml:"auth"`
+	Bandwidth             Bandwidth         `yaml:"bandwidth"`
+	Congestion            Congestion        `yaml:"congestion"`
+	Transport             Transport         `yaml:"transport"`
+	QUIC                  QUIC              `yaml:"quic"`
+	Reverse               Reverse           `yaml:"reverse"`
+	IgnoreClientBandwidth bool              `yaml:"ignoreClientBandwidth"`
+	DisableUDP            bool              `yaml:"disableUDP"`
+	UDPIdleTimeout        time.Duration     `yaml:"udpIdleTimeout"`
+	ReverseUDPOptions     ReverseUDPOptions `yaml:"reverseUDPOptions"`
 }
 
 func ParseBandwidth(s string) (uint64, error) {
@@ -161,6 +201,9 @@ func checkTarget(addr string) error {
 	return nil
 }
 func (c *Client) Validate() error {
+	if err := c.ReverseUDPOptions.FillAndValidate(); err != nil {
+		return err
+	}
 	if c.Server == "" {
 		return errors.New("server is required")
 	}
@@ -207,6 +250,9 @@ func (c *Client) Validate() error {
 	return validateCommon(c.Bandwidth, c.Transport, c.QUIC, c.Congestion)
 }
 func (s *Server) Validate() error {
+	if err := s.ReverseUDPOptions.FillAndValidate(); err != nil {
+		return err
+	}
 	if s.Listen == "" {
 		s.Listen = ":443"
 	}

@@ -1,7 +1,9 @@
 FROM golang:1.26-alpine AS builder
+RUN apk add --no-cache git
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY third_party ./third_party
+ARG GOPROXY=https://proxy.golang.org|direct
 RUN go mod download
 COPY . .
 ARG VERSION=dev

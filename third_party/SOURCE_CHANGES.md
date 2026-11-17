@@ -25,6 +25,8 @@
 - `hysteria/core/client/plaintext_extension.go`：开放原生连接供反向双向流使用。
 - `hysteria/core/extension/protocol.go`：复用原编码、分片及拥塞配置校验。
 - 项目 `internal/proxy/reverse_*.go`：反向端口注册、原生流和 DATAGRAM 分派。
+- 项目 `internal/proxy/udp_*.go`：有界队列、共享预算、到期堆、Linux 批量 IO 和通用回退。
+- `socks5/`：固定版本的原始协议文件和许可；不引入未使用的独立服务器、go-cache 或 runnergroup。
 
 ## 未复制的密码学实现
 

@@ -20,7 +20,8 @@ UDPBrutal 的目标是直接保留 Hysteria2 的代理与 QUIC 传输机制，�
 | internal/socks5/server.go | app/internal/socks5/server.go | 字节一致 |
 | third_party/socks5/ | txthinking/socks5 的 socks5.go、server_side.go、util.go、init.go、LICENSE | 原始编解码文件与许可字节一致；本地最小 go.mod 无第三方依赖 |
 | internal/forwarding/ | app/internal/forwarding/ | TCP/UDP 固定转发代码字节一致 |
-| third_party/quic-go/connection.go、internal/ackhandler/、flow_controller_*.go、mtu_discoverer.go | 同名上游文件 | 字节一致；保留原连接状态机、可靠性、流控与路径 MTU 探测 |
+| third_party/quic-go/internal/ackhandler/、flow_controller_*.go、mtu_discoverer.go | 同名上游文件 | 原有文件字节一致；ACK/loss、流控与路径 MTU 算法保持原样；另增只读诊断方法 |
+| third_party/quic-go/connection.go、send_queue.go、diagnostics.go、internal/ackhandler/diagnostics.go | 原连接/发送队列及新增观测代码 | 默认关闭的被动状态采样、ACK 时间戳、用户态收包丢弃计数和 socket 写入计时；不改变发送唤醒、恢复、流控或调度算法 |
 | third_party/quic-go/internal/handshake/plaintext_*.go | 新增适配 | 明文交换原 transport parameters；包内容和头部直接复制，不派生密钥或生成密码学标签 |
 | third_party/quic-go/packet_packer.go、packet_unpacker.go、server.go | 同名上游文件 | 封包和解析跳过加密包头采样；适配无标签的小 ACK/PING 和错误响应包 |
 | third_party/quic-go/crypto_stream.go | 同名上游文件 | 关闭依赖 TLS ClientHello 的切分/混淆 |
@@ -29,6 +30,7 @@ UDPBrutal 的目标是直接保留 Hysteria2 的代理与 QUIC 传输机制，�
 | third_party/quic-go/http3/server.go | 同名上游文件 | 移除 TLS ticket 初始化、加解密回调和证书监听入口 |
 | third_party/hysteria/core/extension/、internal/proxy/reverse_*.go | 新增扩展 | 通过原生流和 DATAGRAM 实现反向 TCP/UDP 注册和转发 |
 | internal/proxy/udp_*.go | 新增反向 UDP 资源与 IO 管理 | 可复用发送缓冲、有界队列、会话限额、到期堆、Linux 批量收发和跨平台回退；不修改 HY2 拥塞算法或 QUIC 状态机 |
+| internal/proxy/diagnostics.go、protocol.go | 新增诊断及反向 TCP 拷贝包装 | 开启 UDPBRUTAL_DIAGNOSTICS 时记录隧道指标和逐方向读写等待，默认使用原拷贝路径 |
 | go.mod / third_party/**/go.mod | 固定源码模块清单 | 本地 replace、Go 1.26 及实际运行时依赖 |
 
 ## 明文配置边界

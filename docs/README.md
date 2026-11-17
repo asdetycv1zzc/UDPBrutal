@@ -215,6 +215,45 @@ The original native stream and DATAGRAM implementations now carry traffic. UDP d
 
 See [PROTOCOL.md](../PROTOCOL.md) for wire behavior and [NOTICE.md](../NOTICE.md) for the pinned source references and adaptation boundaries.
 
+### Diagnosing reverse TCP stalls
+
+When throughput still pauses after the UDP socket buffers have been raised, enable the optional diagnostics on both UDPBrutal endpoints. Merge this into the existing Compose service's environment:
+
+```yaml
+services:
+  udpbrutal:
+    environment:
+      UDPBRUTAL_DIAGNOSTICS: "200ms"
+```
+
+Update the source and rebuild/recreate the containers:
+
+```bash
+docker-compose up -d --build
+docker-compose logs -f udpbrutal
+```
+
+For the Compose v2 plugin use `docker compose`. A directly launched binary accepts `UDPBRUTAL_DIAGNOSTICS=200ms ./udpbrutal client -c client.yaml`, and server mode accepts the same variable. Keep INFO logging enabled. Adding the variable to an old image does not install the new diagnostic code.
+
+These observers help locate the stall; they are not a stall fix. Diagnostics are disabled by default. Use true for 200ms, a duration from 100ms to 60s, or off to disable them. A tunnel emits transport diagnostics; active reverse TCP relays also emit reverse TCP diagnostics. Role, diagnostic_conn and stream distinguish endpoints and iperf control/data streams.
+
+| Fields | Interpretation |
+| --- | --- |
+| quic_tx_mbps / socket_tx_mbps | Engine send rate and complete successful socket-write rate; successful GSO writes count the full batch and do not prove peer delivery |
+| ack_age_ms / packet_age_ms / pto_count | Age of the last valid ACK and processed packet, and current PTO backoff count; ACK progress can reset the PTO count |
+| inflight / cwnd / send_mode / tracked_packets | Owner-loop snapshot of in-flight bytes, the actual controller's window, send permission and tracked packets |
+| loop_age_ms / snapshot_ready | Snapshot freshness. The observer does not wake the connection loop, so stale snapshots on idle connections are expected |
+| loss_timer_ms / pacing_timer_ms | Last sampled timer deadline relative to now; interpret with timer_set and loop_age_ms, not as an independent proof of a timer fault |
+| send_queue / socket_write_pending_ms / socket_write_last_ms | Socket-send queue length and current/last socket-write duration |
+| rx_queue_drops | User-space QUIC receive-queue drops, distinct from the kernel socket's ss d counter |
+| to_tunnel_stage / to_local_stage | Whether each copy direction is reading, writing, running or done; wait_ms measures that current IO operation |
+| buffered / stream_credit / conn_credit | Pending stream data and remaining send credit; only interpret values whose corresponding Ready flag is true |
+| receive_offset / receive_highest | Consumed offset and highest received offset, interpreted with receive_ready and the relay IO stage |
+| sample_ms | Actual report interval; scheduling and blocked log output can both delay the reporter |
+| quic_lost_delta | Change in the native net-loss counter; spurious-loss correction can make it negative. This is not a physical path-loss rate |
+
+The enabled observer adds counters, clock reads and nonblocking stream snapshots. It emits no per-packet logs or payloads and does not change congestion/flow-control decisions or schedule sends. With diagnostics disabled, there is no reporter or per-IO relay wrapper.
+
 ## Validation Scope
 
 This rewritten transport has not been compiled, container-built or run. Source hashes, syntax/formatting, dependency imports and static review can be checked against the pinned upstream revision; these do not establish runtime correctness. Proxy traffic, losses, reconnection and cross-platform behavior remain unverified. No functional test suite was added or run, and builds still require a manual request.

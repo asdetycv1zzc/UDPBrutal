@@ -135,6 +135,14 @@ than MaxUDPSize are dropped, rather than forwarding truncated data.
 
 ## Verification boundary
 
+UDPBRUTAL_DIAGNOSTICS enables optional local transport and reverse-TCP IO
+observers. This does not change the UBP1 wire format, congestion controller,
+loss recovery, or flow-control algorithm. Owner-loop snapshots are passive and
+do not wake the sender; their age must be considered when reading the logs.
+The local observer adds counters, clock reads and nonblocking stream snapshots
+only when enabled, and is disabled by default. Diagnostics do not establish a
+stall's cause or fix it without observations from the affected deployment.
+
 This transport rewrite has not been compiled, built into images, or exercised
 with end-to-end traffic. Source hashing, parsing/formatting, module resolution,
 and static review are the checks performed for this revision. These checks

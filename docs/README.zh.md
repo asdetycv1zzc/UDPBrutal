@@ -185,6 +185,45 @@ Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批
 
 TLS、ACME 和混淆按明文要求排除。当前 CLI 暴露 SOCKS5、TCP/UDP 转发和反向扩展，尚未暴露 HTTP 代理、TUN、透明代理及 ACL 模式；QUIC 参数和 BBR/Reno 回退已使用原实现。未知配置字段会报错，不能直接复制完整 HY2 配置使用。旧自定义传输的 `transport.udp.idleTimeout` 应改为 `quic.maxIdleTimeout`；原 `handshakeTimeout`、`maxSessions` 删除，由 QUIC 引擎管理握手和流数量。
 
+### 定位反向 TCP 秒级停顿
+
+若 UDP socket 已成功扩大，而吞吐仍出现间歇性停顿，可以在两端 UDPBrutal 进程启用默认关闭的诊断。加入现有 Compose 服务的 `environment`：
+
+```yaml
+services:
+  udpbrutal:
+    environment:
+      UDPBRUTAL_DIAGNOSTICS: "200ms"
+```
+
+更新源码并重新构建、创建容器后生效：
+
+```bash
+docker-compose up -d --build
+docker-compose logs -f udpbrutal
+```
+
+若使用 Compose v2 插件，将 `docker-compose` 替换为 `docker compose`。二进制直接运行时，可使用 `UDPBRUTAL_DIAGNOSTICS=200ms ./udpbrutal client -c client.yaml`；服务端同样支持。保持 INFO 日志级别。需要重建镜像，已有旧镜像不会因增加环境变量而自动获得此功能。
+
+诊断只做观测，尚不构成对停顿的修复。默认间隔 200ms（设为 true 同样使用 200ms），允许 100ms..60s；删除变量或设为 off 即关闭。每条隧道一份 `transport diagnostics`，每条活动反向 TCP 流另有 `reverse TCP diagnostics`，均带 `role`、`diagnostic_conn` 和流号以区分两端及 iperf 控制/数据连接。
+
+| 指标 | 用途与限制 |
+| --- | --- |
+| quic_tx_mbps / socket_tx_mbps | 引擎发送计数与成功 socket 写入计数的速率；GSO 批次完整写入成功才计入后者，不代表对端已收到 |
+| ack_age_ms / packet_age_ms / pto_count | 最近有效 ACK、已处理报文距当前的时间，以及当前 PTO 退避次数；PTO 次数可在 ACK 恢复后归零 |
+| inflight / cwnd / send_mode / tracked_packets | 原发送线程采集的在途字节、实际控制器窗口、发送许可及跟踪包数 |
+| loop_age_ms / snapshot_ready | 发送线程快照的时效性；快照按自然事件被动采集，空闲时变旧正常，不会唤醒发送线程来取样 |
+| loss_timer_ms / pacing_timer_ms | 最近快照里的恢复/节奏定时器距当前的时间；需同时看对应 timer_set 和 loop_age_ms，负值本身不能证明定时器故障 |
+| send_queue / socket_write_pending_ms / socket_write_last_ms | 发送队列长度、正在进行的 socket 写入耗时和上次写入耗时 |
+| rx_queue_drops | QUIC 用户态收包队列累计丢包数；它与内核 socket 的 ss d 计数不同 |
+| to_tunnel_stage / to_local_stage | 向隧道/向本地连接的拷贝分别正在 read、write、running 或 done；wait_ms 是当前这次调用的耗时 |
+| buffered / stream_credit / conn_credit | 流内等待发送的字节和剩余流控额度；仅在 send_ready/conn_credit_ready 为 true 时解释对应值 |
+| receive_offset / receive_highest | 已读取位置与最高收到位置；需结合 to_local_stage 和 receive_ready 判断是否存在等待按序交付 |
+| sample_ms | 实际采样间隔；异常变长也可能是调度或日志输出受阻，不能单独据此认定 GC 或网络故障 |
+| quic_lost_delta | 原生净判丢计数变化，确认误判后可能为负值；不是线路物理丢包率 |
+
+诊断包含轻量计数、时钟读取和可用时的非阻塞流状态快照，启用后有额外开销。它不输出逐包日志或数据内容，不调用发送唤醒，不修改拥塞或流控决定；关闭时不创建采样器，也不包装反向 TCP 的逐次读写。不要把空闲连接的旧快照当作故障。
+
 ## 传输与验证范围
 
 Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`，与固定上游字节一致，包括原始 import。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，不再使用自制可靠 UDP、512 包窗口或 yamux。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。

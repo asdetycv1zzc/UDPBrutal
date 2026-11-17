@@ -132,6 +132,7 @@ func (s *reverseServer) register(conn *quic.Conn, stream *quic.Stream) {
 		p.mu.Unlock()
 		reply.UDP = append(reply.UDP, socket.LocalAddr().String())
 	}
+	startConnectionObserver(conn, "server")
 	if err := writeMessage(stream, reply); err != nil {
 		return
 	}

@@ -3,7 +3,9 @@ package quic
 import (
 	"errors"
 	"net"
+	"sync/atomic"
 
+	"github.com/apernet/quic-go/internal/monotime"
 	"github.com/apernet/quic-go/internal/protocol"
 )
 
@@ -28,6 +30,7 @@ type sendQueue struct {
 	runStopped  chan struct{} // runStopped when the run loop returns
 	available   chan struct{}
 	conn        sendConn
+	diagnostics atomic.Pointer[socketWriteDiagnostics]
 }
 
 var _ sender = &sendQueue{}
@@ -88,7 +91,26 @@ func (h *sendQueue) Run() error {
 			// make sure that all queued packets are actually sent out
 			shouldClose = true
 		case e := <-h.queue:
-			if err := h.conn.Write(e.buf.Data, e.gsoSize, e.ecn); err != nil {
+			d := h.diagnostics.Load()
+			var started monotime.Time
+			if d != nil {
+				started = monotime.Now()
+				d.calls.Add(1)
+				d.started.Store(int64(started))
+			}
+			err := h.conn.Write(e.buf.Data, e.gsoSize, e.ecn)
+			if d != nil {
+				done := monotime.Now()
+				d.lastDuration.Store(int64(done.Sub(started)))
+				d.completed.Store(int64(done))
+				if err == nil {
+					d.bytes.Add(uint64(len(e.buf.Data)))
+				} else {
+					d.errors.Add(1)
+				}
+				d.started.Store(0)
+			}
+			if err != nil {
 				// This additional check enables:
 				// 1. Checking for "datagram too large" message from the kernel, as such,
 				// 2. Path MTU discovery,and

@@ -131,6 +131,7 @@ func (c *Client) connect() error {
 		return errors.New("Hysteria native connection hook is unavailable")
 	}
 	conn := owner.Connection()
+	startConnectionObserver(conn, "client")
 	go c.reverse.AcceptStreams(conn)
 	var reply registrationReply
 	if len(c.cfg.ReverseTCP)+len(c.cfg.ReverseUDP) > 0 {

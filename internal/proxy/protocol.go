@@ -92,8 +92,24 @@ func closeWrite(c net.Conn) {
 func relay(a, b net.Conn) {
 	defer a.Close()
 	defer b.Close()
+	observer, detach := observeRelay(a, b)
+	defer detach()
 	done := make(chan error, 2)
-	copyOne := func(dst, src net.Conn) { _, err := io.Copy(dst, src); closeWrite(dst); done <- err }
+	copyOne := func(dst, src net.Conn) {
+		var err error
+		if observer == nil {
+			_, err = io.Copy(dst, src)
+		} else {
+			direction := &observer.toLocal
+			if _, ok := dst.(*streamConn); ok {
+				direction = &observer.toTunnel
+			}
+			_, err = io.Copy(diagnosticWriter{Writer: dst, direction: direction}, diagnosticReader{Reader: src, direction: direction})
+			direction.stage(diagnosticDone)
+		}
+		closeWrite(dst)
+		done <- err
+	}
 	go copyOne(a, b)
 	go copyOne(b, a)
 	if err := <-done; err != nil {

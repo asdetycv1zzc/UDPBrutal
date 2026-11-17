@@ -161,8 +161,9 @@ type Conn struct {
 	connIDManager   *connIDManager
 	connIDGenerator *connIDGenerator
 
-	rttStats  *utils.RTTStats
-	connStats utils.ConnectionStats
+	rttStats    *utils.RTTStats
+	connStats   utils.ConnectionStats
+	diagnostics atomic.Pointer[connectionDiagnostics]
 
 	cryptoStreamManager   *cryptoStreamManager
 	sentPacketHandler     ackhandler.SentPacketHandler
@@ -619,6 +620,7 @@ func (c *Conn) run() (err error) {
 
 runLoop:
 	for {
+		c.captureDiagnostics()
 		if c.framer.QueuedTooManyControlFrames() {
 			c.setCloseError(&closeError{err: &qerr.TransportError{ErrorCode: InternalError}})
 			break runLoop
@@ -2054,6 +2056,7 @@ func (c *Conn) queuePacket(p receivedPacket, source *pathReceiver) {
 	// Discard packets once the amount of queued packets is larger than
 	// the channel size, protocol.MaxConnUnprocessedPackets
 	if !c.receivedPackets.Push(p, source) {
+		c.noteDiagnosticQueueDrop()
 		if c.qlogger != nil {
 			var datagramPayloadChecksum qlog.DatagramPayloadChecksum
 			if wire.IsLongHeaderPacket(p.data[0]) {
@@ -2254,6 +2257,7 @@ func (c *Conn) handleAckFrame(frame *wire.AckFrame, encLevel protocol.Encryption
 	if err != nil {
 		return err
 	}
+	c.noteDiagnosticAck(rcvTime)
 	if !acked1RTTPacket {
 		return nil
 	}

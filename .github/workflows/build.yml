@@ -63,13 +63,13 @@ jobs:
           if [ "$GOOS" = windows ]; then binary=udpbrutal.exe; fi
           build_commit="$(git rev-parse HEAD)"
           go build -trimpath -ldflags "-s -w -X main.version=$BUILD_VERSION -X main.commit=$build_commit" -o "package/$binary" ./cmd/udpbrutal
-          cp LICENSE NOTICE.md README.md package/
-          cp -r examples scripts package/
+          cp LICENSE NOTICE.md PROTOCOL.md README.md package/
+          cp -r docs examples scripts package/
           name="udpbrutal-$GOOS-$GOARCH"
           if [ "$GOOS" = windows ]; then
             (cd package && zip -r "../dist/$name.zip" .)
           else
-            tar -czf "dist/$name.tar.gz" -C package udpbrutal LICENSE NOTICE.md README.md examples scripts
+            tar -czf "dist/$name.tar.gz" -C package udpbrutal LICENSE NOTICE.md PROTOCOL.md README.md docs examples scripts
           fi
       - uses: actions/upload-artifact@v4
         with:

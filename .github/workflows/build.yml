@@ -1,0 +1,98 @@
+name: Build
+on:
+  workflow_dispatch:
+    inputs:
+      target_os:
+        description: Target operating system
+        type: choice
+        options: [linux, darwin, windows]
+        default: linux
+      target_arch:
+        description: Target architecture
+        type: choice
+        options: [amd64, arm64]
+        default: amd64
+      release_tag:
+        description: Optional existing tag to build and publish (empty means artifact only)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - name: Formatting and static analysis
+        run: |
+          if [ -n "$(gofmt -l cmd internal)" ]; then
+            gofmt -l cmd internal
+            exit 1
+          fi
+          go vet ./...
+          go build ./...
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - name: Build and package
+        env:
+          GOOS: ${{ inputs.target_os }}
+          GOARCH: ${{ inputs.target_arch }}
+          CGO_ENABLED: '0'
+          BUILD_VERSION: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          mkdir -p package dist
+          binary=udpbrutal
+          if [ "$GOOS" = windows ]; then binary=udpbrutal.exe; fi
+          build_commit="$(git rev-parse HEAD)"
+          go build -trimpath -ldflags "-s -w -X main.version=$BUILD_VERSION -X main.commit=$build_commit" -o "package/$binary" ./cmd/udpbrutal
+          cp LICENSE NOTICE.md README.md package/
+          cp -r examples scripts package/
+          name="udpbrutal-$GOOS-$GOARCH"
+          if [ "$GOOS" = windows ]; then
+            (cd package && zip -r "../dist/$name.zip" .)
+          else
+            tar -czf "dist/$name.tar.gz" -C package udpbrutal LICENSE NOTICE.md README.md examples scripts
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: udpbrutal-${{ inputs.target_os }}-${{ inputs.target_arch }}
+          path: dist/*
+
+  release:
+    if: inputs.release_tag != ''
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: udpbrutal-*
+          path: dist
+          merge-multiple: true
+      - name: Publish release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --title "UDPBrutal $RELEASE_TAG" --notes-file RELEASE_NOTES.md

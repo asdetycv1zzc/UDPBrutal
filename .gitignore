@@ -1,0 +1,7 @@
+/udpbrutal
+/udpbrutal.exe
+/dist/
+*.log
+/config.yaml
+/config.yml
+/config.json

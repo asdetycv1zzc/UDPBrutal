@@ -1,0 +1,27 @@
+listen: :443
+
+# 与客户端 auth 一致；此字段原样明文传输，不做哈希或加密。
+auth:
+  type: password
+  password: example-password
+
+bandwidth:
+  up: 100 mbps
+  down: 100 mbps
+  disableLossCompensation: false
+
+transport:
+  type: udp
+  udp:
+    idleTimeout: 30s
+    handshakeTimeout: 5s
+    maxSessions: 128
+
+# 允许客户端在服务器上注册 TCP 和 UDP 监听端口。
+reverse:
+  enabled: true
+  maxListeners: 16
+
+# 控制正向 SOCKS5 UDP 和 udpForwarding；不控制 reverseUDP。
+disableUDP: false
+udpIdleTimeout: 60s

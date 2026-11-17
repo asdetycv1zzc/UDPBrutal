@@ -1,0 +1,36 @@
+server: your-server.example.com:443
+auth: example-password
+
+bandwidth:
+  up: 100 mbps
+  down: 100 mbps
+  disableLossCompensation: false
+
+transport:
+  type: udp
+  udp:
+    idleTimeout: 30s
+    handshakeTimeout: 5s
+
+socks5:
+  listen: 127.0.0.1:1080
+  # username: user
+  # password: pass
+  disableUDP: false
+
+# 以下均可按需取消注释。
+# tcpForwarding:
+#   - listen: 127.0.0.1:8088
+#     remote: internal.example.com:80
+# udpForwarding:
+#   - listen: 127.0.0.1:5353
+#     remote: 1.1.1.1:53
+#     timeout: 60s
+
+# reverseTCP:
+#   - listen: 0.0.0.0:18080       # 服务器监听
+#     remote: 127.0.0.1:8080     # 客户端本地服务
+# reverseUDP:
+#   - listen: 0.0.0.0:15353       # 服务器监听
+#     remote: 127.0.0.1:5353     # 客户端本地 UDP 服务
+#     timeout: 60s

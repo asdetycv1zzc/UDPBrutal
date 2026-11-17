@@ -1,0 +1,16 @@
+# 只做内网穿透时，不需要 socks5 配置。
+server: your-server.example.com:443
+auth: example-password
+
+bandwidth:
+  up: 100 mbps
+  down: 100 mbps
+
+reverseTCP:
+  - listen: 0.0.0.0:18080
+    remote: 127.0.0.1:8080
+
+reverseUDP:
+  - listen: 0.0.0.0:15353
+    remote: 127.0.0.1:5353
+    timeout: 60s

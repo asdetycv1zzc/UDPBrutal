@@ -4,7 +4,7 @@
 
 基于 Hysteria2 **Brutal 拥塞控制**的明文 UDP 代理，提供本地 SOCKS5 上网和服务器到客户端的反向端口映射。正向与反向均支持 **TCP 和 UDP**。
 
-Brutal 和 pacer 与 [指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)字节一致，包含原始 import 路径；完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
+Brutal 基于[指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)，仅将丢包补偿倍率上限从 1.25 提高至 1.33；pacer 与上游字节一致，保留原始 import 路径。完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
 
 当前直接使用固定版本的 Hysteria2 核心与 QUIC 引擎，保留原生流、DATAGRAM、确认/丢包处理、重传、流控和路径 MTU 探测，仅替换为明文握手和无包保护配置。**不能与未经修改的 Hysteria2 客户端或服务器互通**。反向端口映射是基于原生双向流和 DATAGRAM 的项目扩展。
 
@@ -150,7 +150,7 @@ reverseUDPOptions:
 
 发送路径复用序列化缓冲和固定地址；客户端会话表分区，服务器按映射持锁。回包通过有界队列交给独立 UDP 写入协程，统一 DATAGRAM 接收入口不等待目标 socket。过期回收使用单调时钟、到期堆和共享定时器，不再每秒遍历全部会话或为每个客户端会话维护定时器。
 
-Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批量发送；不会等待凑齐一批。批量系统调用不受支持时回退为普通 socket 收发，其他平台保留相同协议和队列行为。反向应用数据报上限仍为原 HY2 的 4096 字节，超过时丢弃，避免转发截断的报文。Brutal、pacer、正向代理与 QUIC 丢包恢复机制保持原始实现。
+Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批量发送；不会等待凑齐一批。批量系统调用不受支持时回退为普通 socket 收发，其他平台保留相同协议和队列行为。反向应用数据报上限仍为原 HY2 的 4096 字节，超过时丢弃，避免转发截断的报文。批量 IO 不改变 pacer、正向代理与 QUIC 丢包恢复机制。
 
 ## 其他配置与命令
 
@@ -169,7 +169,7 @@ Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批
 | -l / --log-level；-f / --log-format | debug/info/warn/error；console/json。环境变量 UDPBRUTAL_LOG_LEVEL、UDPBRUTAL_LOG_FORMAT |
 | --disable-update-check | 为类似 Hysteria 的服务启动命令保留；本程序没有自动更新检查 |
 | bandwidth.up / down | 十进制 bps/kbps/mbps/gbps/tbps；up 为本端发送速率，down 为本端允许的对端发送速率；两端取较小值。未提供速率时按原 HY2 带宽协商及 BBR/Reno 回退逻辑处理，不再自行填充 100 mbps |
-| bandwidth.disableLossCompensation | 原 Brutal 开关；设为 true 时 ACK rate 固定为 1 |
+| bandwidth.disableLossCompensation | 默认 false，启用最高 1.33 倍的自适应补偿；设为 true 时 ACK rate 固定为 1，不提高发送预算 |
 | transport.type | 仅 udp；省略也使用 udp |
 | quic.maxIdleTimeout | 原 HY2 QUIC 空闲超时，默认 30s，范围 4s..120s |
 | quic.keepAlivePeriod | 客户端 keepalive，默认 10s，范围 2s..60s |
@@ -182,6 +182,8 @@ Linux 反向监听使用批量接收，反向 UDP 写入按已有队列内容批
 | udpForwarding[].timeout / reverseUDP[].timeout | 对应 UDP 来源会话空闲超时，默认 60s，最大 24h |
 | disableUDP | 禁用服务器正向 UDP relay；reverseUDP 单独由 reverse.enabled 控制 |
 | HYSTERIA_BRUTAL_DEBUG / UDPBRUTAL_BRUTAL_DEBUG | 设为 true 输出原 Brutal 调试信息 |
+
+Brutal 补偿倍率上限已由固定上游的 **1.25 倍提高至 1.33 倍**。ACK rate 下限为 `1 / 1.33`；样本充足时，补偿倍率为 `1 / max(ACK rate, 1 / 1.33)`。协商速率为 300 mbps 时，最高发送预算为 399 mbps。补偿作用于同一连接的 TCP 流与 UDP DATAGRAM，不会重传丢失的 UDP 载荷或增加 FEC；需要有足够的待发送数据才能用满预算。该行为由本端发送器决定，双向使用新上限需更新两端。关闭补偿时保持 1.0 倍；实际网卡统计仍包含 IP/UDP 头部，也可能出现短时突发。
 
 TLS、ACME 和混淆按明文要求排除。当前 CLI 暴露 SOCKS5、TCP/UDP 转发和反向扩展，尚未暴露 HTTP 代理、TUN、透明代理及 ACL 模式；QUIC 参数和 BBR/Reno 回退已使用原实现。未知配置字段会报错，不能直接复制完整 HY2 配置使用。旧自定义传输的 `transport.udp.idleTimeout` 应改为 `quic.maxIdleTimeout`；原 `handshakeTimeout`、`maxSessions` 删除，由 QUIC 引擎管理握手和流数量。
 
@@ -294,7 +296,7 @@ tcpdump -i any -nn -s 128 -B 4096 -w /tmp/udpbrutal.pcap 'udp port 443'
 
 ## 传输与验证范围
 
-Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`，与固定上游字节一致，包括原始 import。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，不再使用自制可靠 UDP、512 包窗口或 yamux。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
+Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`。Brutal 仅将最高丢包补偿倍率由 1.25 提高至 1.33；pacer 与固定上游字节一致，原始 import 保留。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，不再使用自制可靠 UDP、512 包窗口或 yamux。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
 
 UDP 恢复为原生不可靠 DATAGRAM，并使用 HY2 原始 UDPMessage、分片/重组和会话管理。外层 UDP 包不再固定封顶 1200 字节，使用上游初始包大小、EMSGSIZE 回退、对端限制和路径 MTU 探测；上游 `InitialPacketSize=1280`、QUIC 的 1200 字节最低要求、HY2 的 `MaxDatagramFrameSize=1200` 是不同概念。原 HY2 应用 UDP 缓冲 `MaxUDPSize=4096` 保留。TLS 相关握手、包保护、票据、0-RTT 密钥和指纹处理移除；无加密配置和反向扩展的必要差异见 [PROTOCOL.md](../PROTOCOL.md)。
 

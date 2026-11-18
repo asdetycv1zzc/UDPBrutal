@@ -138,7 +138,7 @@ New datagrams are dropped when a queue or byte budget is full. New sessions are 
 
 Sending reuses serialization buffers, prefixes and fixed address strings. Client session maps are sharded and server routing locks belong to individual mappings. Bounded queues keep local socket writes out of the connection-wide DATAGRAM receive loop. Idle expiry uses a monotonic deadline heap and one shared timer, replacing full-map scans and per-client-session timers.
 
-Linux reverse listeners receive in batches, and reverse UDP writers send batches of already queued packets without waiting to fill a batch. Unsupported batch syscalls fall back to ordinary socket IO. The original 4096-byte application UDP limit remains; larger reverse datagrams are dropped instead of forwarding a truncated packet. Brutal, pacing, the forward proxy and native QUIC loss recovery remain unchanged.
+Linux reverse listeners receive in batches, and reverse UDP writers send batches of already queued packets without waiting to fill a batch. Unsupported batch syscalls fall back to ordinary socket IO. The original 4096-byte application UDP limit remains; larger reverse datagrams are dropped instead of forwarding a truncated packet. Batch IO does not alter pacing, forward proxy semantics or native QUIC loss recovery.
 
 ## Fixed Forwarding
 
@@ -168,6 +168,8 @@ Complete examples are available for the [server](../examples/server.yaml), [clie
 Client mode is the default. Without `-c`, configuration is loaded from `config.yaml`, `config.yml`, or `config.json` in the current directory, then `~/.udpbrutal/`, then `/etc/udpbrutal/`.
 
 `bandwidth.up` sets the local sending rate; `bandwidth.down` participates in the original peer-rate negotiation. Units are decimal bps/kbps/mbps/gbps/tbps. Omitted rates retain the upstream automatic-control behavior; a 100 mbps default is not injected. Set `bandwidth.disableLossCompensation: true` to keep Brutal's ACK rate at 1 when Brutal is selected.
+
+Brutal's adaptive loss-compensation factor is capped at **1.33x**, increased from the pinned upstream's 1.25x. The minimum ACK rate is `1 / 1.33`, so the factor is `1 / max(ACK rate, 1 / 1.33)` once enough samples are available. With a negotiated 300 mbps rate, the maximum compensated sending budget is 399 mbps. Compensation applies to both TCP streams and UDP DATAGRAMs on the same connection; it does not retransmit lost UDP payloads or add FEC. The setting is local to each sender; update both endpoints for the new cap in both directions. Disabling compensation keeps the factor at 1.0. IP/UDP overhead and short bursts are outside a strict wire-rate interpretation.
 
 The source defaults are a 30-second QUIC idle timeout and 10-second client keepalive. Forwarded UDP associations default to a 60-second idle timeout. Configuration parsing rejects unknown fields.
 

@@ -99,8 +99,18 @@ head-of-line blocking. The upstream application buffers and limits, including
 
 Brutal is selected by the original bandwidth negotiation. If bandwidth is
 unknown or the server selects automatic control, the original BBR/Reno
-selection remains available. Brutal and pacer are byte-for-byte upstream
-files, not independent transport-neutral reimplementations.
+selection remains available. Brutal's maximum loss-compensation factor is
+1.33x, replacing the upstream 1.25x cap. Its minimum ACK rate is defined as
+`1 / 1.33`; the remaining controller logic and the entire pacer retain the
+pinned source implementation.
+
+Once the upstream minimum sample count is met, the adaptive factor is
+`1 / max(ACK rate, 1 / 1.33)`. It applies to the local sender's pacing rate
+and congestion window for both native streams and DATAGRAMs. Setting
+`bandwidth.disableLossCompensation: true` keeps the factor at 1.0. For a
+negotiated 300 mbps rate, the maximum compensated sending budget is 399 mbps;
+this is not a guarantee of delivered application throughput or an IP/UDP
+wire-rate limit. UDP DATAGRAM loss is still not retransmitted or FEC-recovered.
 
 ## Reverse extension
 
@@ -147,8 +157,9 @@ Linux reverse-port IO supports recvmmsg/sendmmsg via x/net's batch APIs;
 other platforms and unsupported batch syscalls use ordinary UDP sockets.
 Batch writes drain already available messages without waiting to fill a batch.
 These changes retain the existing UBP1 wire format, native unreliable DATAGRAM
-semantics, and original Brutal/pacer. Reverse application datagrams larger
-than MaxUDPSize are dropped, rather than forwarding truncated data.
+semantics, and the Brutal/pacer integration described above. Reverse application
+datagrams larger than MaxUDPSize are dropped, rather than forwarding truncated
+data.
 
 ## Verification boundary
 

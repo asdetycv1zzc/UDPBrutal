@@ -12,7 +12,7 @@ UDPBrutal 的目标是直接保留 Hysteria2 的代理与 QUIC 传输机制，�
 
 | 项目文件 | 上游来源 | 处理方式 |
 | --- | --- | --- |
-| third_party/hysteria/core/internal/congestion/brutal/brutal.go | core/internal/congestion/brutal/brutal.go | 字节一致，包括原始 import |
+| third_party/hysteria/core/internal/congestion/brutal/brutal.go | core/internal/congestion/brutal/brutal.go | 丢包补偿倍率上限由 1.25 提高至 1.33，ACK rate 下限为 1 / 1.33；其他逻辑及原始 import 保留 |
 | third_party/hysteria/core/internal/congestion/common/pacer.go | core/internal/congestion/common/pacer.go | 字节一致 |
 | third_party/hysteria/core/internal/protocol/ | core/internal/protocol/ | HTTP/3 认证头、TCP/UDP 消息编码原样保留 |
 | third_party/hysteria/core/internal/frag/ | core/internal/frag/ | 原分片与重组代码 |

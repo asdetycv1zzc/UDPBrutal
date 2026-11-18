@@ -15,7 +15,8 @@ import (
 const (
 	pktInfoSlotCount           = 5 // slot index is based on seconds, so this is basically how many seconds we sample
 	minSampleCount             = 50
-	minAckRate                 = 0.8
+	maxLossCompensationFactor  = 1.33
+	minAckRate                 = 1 / maxLossCompensationFactor
 	congestionWindowMultiplier = 2
 
 	debugEnv           = "HYSTERIA_BRUTAL_DEBUG"

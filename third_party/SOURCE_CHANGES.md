@@ -4,6 +4,8 @@
 
 ## 修改的上游文件
 
+- `third_party/hysteria/core/internal/congestion/brutal/brutal.go`：丢包补偿倍率上限由 1.25 提高至 1.33；`minAckRate = 1 / maxLossCompensationFactor`，其余逻辑保留。
+
 - `third_party/quic-go/go.mod`
 - `third_party/quic-go/packet_unpacker.go`
 - `third_party/quic-go/stateless_reset.go`
@@ -40,6 +42,6 @@
 
 上游 internal/handshake 中的 AEAD、cipher suite、header protector、HKDF、TLS/uTLS、TLS tickets 和 key-update 实现，以及 internal/qtls 均未引入本地 fork。保留的 interface/token-generator 由明文适配实现。
 
-`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go 外的原 ACK/loss 文件、HY2 Brutal/pacer/frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 新增被动诊断 hook；`send_queue.go` 加入批量 IO 和观测，保留上游拥塞、pacer、发送许可、恢复和流控决定。
+`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go 外的原 ACK/loss 文件、HY2 pacer/frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。Brutal 仅调整上述补偿倍率上限；UPSTREAM_FILES.json 继续记录固定上游的原始哈希。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 新增被动诊断 hook；`send_queue.go` 加入批量 IO 和观测，保留上游拥塞接入、pacer、发送许可、恢复和流控决定。
 
 本次未编译或运行验证。

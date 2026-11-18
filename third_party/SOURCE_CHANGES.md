@@ -4,7 +4,8 @@
 
 ## 修改的上游文件
 
-- `third_party/hysteria/core/internal/congestion/brutal/brutal.go`：丢包补偿倍率上限由 1.25 提高至 1.33；`minAckRate = 1 / maxLossCompensationFactor`，其余逻辑保留。
+- `third_party/hysteria/core/internal/congestion/brutal/brutal.go`：补偿上限为 1.33；新增连接线程内原地更新带宽及补偿开关的方法，保留 ACK 样本、RTT 和 MTU。
+- `third_party/hysteria/core/internal/congestion/common/pacer.go`：原算法保留，新增热重载时保留并裁剪已有信用、重设信用时间戳的方法。
 
 - `third_party/quic-go/go.mod`
 - `third_party/quic-go/packet_unpacker.go`
@@ -16,6 +17,7 @@
 - `third_party/quic-go/connection.go`
 - `third_party/quic-go/transport.go`
 - `third_party/quic-go/internal/ackhandler/sent_packet_handler.go`
+- `third_party/quic-go/internal/ackhandler/interfaces.go`
 - `third_party/quic-go/http3/server.go`
 - `third_party/quic-go/internal/protocol/version.go`
 - `third_party/hysteria/core/go.mod`
@@ -25,6 +27,10 @@
 - `third_party/hysteria/core/client/client.go`
 
 ## 新增适配与扩展
+
+- `internal/config/reload.go`、`internal/proxy/bandwidth.go`：正数固定带宽的配置监视、独立控制流、两端版本号与确认、同连接控制流重试及原地参数更新；CLI 固定初始配置路径，其他字段变更拒绝重载。
+- `hysteria/core/extension/bandwidth.go`：能力协商头及连接线程内更新现有 Brutal 的入口；client/server 增加能力协商，server/config 增加新认证读取最新带宽的快照回调。
+- `quic-go/connection.go`、`internal/ackhandler/interfaces.go`、`sent_packet_handler.go`：通过连接线程队列更新发送器参数，并重新计算 pacing 定时，不替换发送器或重置恢复状态。
 
 - `quic-go/internal/handshake/plaintext_setup.go`：明文握手及上游事件接口。
 - `quic-go/internal/handshake/plaintext_protection.go`：直接复制包字节、原包号恢复与字面 token。
@@ -42,6 +48,6 @@
 
 上游 internal/handshake 中的 AEAD、cipher suite、header protector、HKDF、TLS/uTLS、TLS tickets 和 key-update 实现，以及 internal/qtls 均未引入本地 fork。保留的 interface/token-generator 由明文适配实现。
 
-`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go 外的原 ACK/loss 文件、HY2 pacer/frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。Brutal 仅调整上述补偿倍率上限；UPSTREAM_FILES.json 继续记录固定上游的原始哈希。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 新增被动诊断 hook；`send_queue.go` 加入批量 IO 和观测，保留上游拥塞接入、pacer、发送许可、恢复和流控决定。
+`mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go/interfaces.go 外的原 ACK/loss 文件、HY2 frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。Brutal/pacer 增加上述参数更新与信用重设方法；UPSTREAM_FILES.json 继续记录固定上游的原始哈希。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 保留被动诊断 hook；`send_queue.go` 保留批量 IO 和观测。热重载只更新拥塞参数及对应 pacing 时机，不重置流、会话、恢复状态或路径 MTU。
 
 本次未编译或运行验证。

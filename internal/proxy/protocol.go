@@ -46,7 +46,7 @@ func writeMessage(w io.Writer, v any) error {
 		return err
 	}
 	if len(b) > 16384 {
-		return errors.New("reverse control message too large")
+		return errors.New("control message too large")
 	}
 	var header [4]byte
 	binary.BigEndian.PutUint32(header[:], uint32(len(b)))
@@ -59,7 +59,7 @@ func readMessage(r io.Reader, v any) error {
 	}
 	n := binary.BigEndian.Uint32(header[:])
 	if n == 0 || n > 16384 {
-		return errors.New("invalid reverse control message length")
+		return errors.New("invalid control message length")
 	}
 	b := make([]byte, n)
 	if _, err := io.ReadFull(r, b); err != nil {

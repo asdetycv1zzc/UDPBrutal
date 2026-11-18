@@ -29,6 +29,7 @@ type Config struct {
 	BandwidthConfig  BandwidthConfig
 	FastOpen         bool
 	DatagramHandler  func(*quic.Conn, []byte) bool
+	BandwidthReload  bool // advertise the optional fixed-bandwidth control stream
 
 	filled bool // whether the fields have been verified and filled
 }

@@ -34,6 +34,8 @@ type Config struct {
 	Outbound              Outbound
 	CongestionConfig      CongestionConfig
 	BandwidthConfig       BandwidthConfig
+	BandwidthConfigFunc   func() BandwidthConfig // snapshot current limits for new authentications
+	BandwidthReload       bool                   // advertise the optional fixed-bandwidth control stream
 	IgnoreClientBandwidth bool
 	DisableUDP            bool
 	UDPIdleTimeout        time.Duration

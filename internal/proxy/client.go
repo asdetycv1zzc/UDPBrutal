@@ -17,6 +17,7 @@ import (
 
 type Client struct {
 	cfg                    config.Client
+	bandwidth              *bandwidthManager
 	ctx                    context.Context
 	cancel                 context.CancelFunc
 	mu                     sync.RWMutex
@@ -40,8 +41,12 @@ func StartClient(parent context.Context, cfg config.Client) (*Client, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
+	bandwidth, err := newBandwidthManager(cfg.Bandwidth, "client", true)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(parent)
-	c := &Client{cfg: cfg, ctx: ctx, cancel: cancel, done: make(chan struct{})}
+	c := &Client{cfg: cfg, bandwidth: bandwidth, ctx: ctx, cancel: cancel, done: make(chan struct{})}
 	c.reverse = newReverseClient(ctx, cfg.ReverseTCP, cfg.ReverseUDP, cfg.ReverseUDPOptions)
 	if err := c.connect(); err != nil {
 		cancel()
@@ -98,17 +103,14 @@ func (c *Client) connect() error {
 	}
 	stopCancel := context.AfterFunc(c.ctx, func() { socket.Close() })
 	defer stopCancel()
-	up, down, err := config.BandwidthBytes(c.cfg.Bandwidth)
-	if err != nil {
-		socket.Close()
-		return err
-	}
+	limits := c.bandwidth.snapshot()
+	up, down := limits.up, limits.down
 	q := c.cfg.QUIC
 	incomingStreams := q.MaxIncomingStreams
 	if len(c.cfg.ReverseTCP) > 0 && incomingStreams == 0 {
 		incomingStreams = 1024
 	}
-	native, _, err := hyclient.NewClient(&hyclient.Config{
+	native, info, err := hyclient.NewClient(&hyclient.Config{
 		ConnFactory: packetFactory{socket}, ServerAddr: addr, Auth: c.cfg.Auth, FastOpen: c.cfg.FastOpen,
 		QUICConfig: hyclient.QUICConfig{
 			MaxIncomingStreams:         incomingStreams,
@@ -118,7 +120,8 @@ func (c *Client) connect() error {
 			DisablePathMTUDiscovery: q.DisablePathMTUDiscovery, DisableGSO: q.DisableGSO, DisableChromeParrot: true,
 		},
 		CongestionConfig: hyclient.CongestionConfig{Type: c.cfg.Congestion.Type, BBRProfile: c.cfg.Congestion.BBRProfile},
-		BandwidthConfig:  hyclient.BandwidthConfig{MaxTx: up, MaxRx: down, DisableLossCompensation: c.cfg.Bandwidth.DisableLossCompensation},
+		BandwidthConfig:  hyclient.BandwidthConfig{MaxTx: up, MaxRx: down, DisableLossCompensation: limits.disableLossCompensation},
+		BandwidthReload:  c.bandwidth.enabled,
 		DatagramHandler:  c.reverse.HandleDatagram,
 	})
 	if err != nil {
@@ -131,6 +134,22 @@ func (c *Client) connect() error {
 		return errors.New("Hysteria native connection hook is unavailable")
 	}
 	conn := owner.Connection()
+	var controlPeer *bandwidthPeer
+	connected := false
+	defer func() {
+		if !connected && controlPeer != nil {
+			controlPeer.close(net.ErrClosed)
+			c.bandwidth.remove(controlPeer)
+		}
+	}()
+	if info.BandwidthReload {
+		controlPeer, err = c.bandwidth.openClient(conn)
+		if err != nil {
+			slog.Warn("initial bandwidth control exchange failed; will retry", "error", err)
+		}
+	} else if c.bandwidth.enabled {
+		slog.Warn("peer does not support bandwidth hot reload; upgrade both endpoints for live updates")
+	}
 	startConnectionObserver(conn, "client")
 	go c.reverse.AcceptStreams(conn)
 	var reply registrationReply
@@ -152,6 +171,10 @@ func (c *Client) connect() error {
 	c.reverseTCP = reply.TCP
 	c.reverseUDP = reply.UDP
 	c.mu.Unlock()
+	connected = true
+	if info.BandwidthReload {
+		go c.bandwidth.maintainClient(conn, controlPeer)
+	}
 	slog.Info("connected to server", "server", c.cfg.Server, "transport", "Hysteria plaintext profile", "reverseTCP", reply.TCP, "reverseUDP", reply.UDP)
 	return nil
 }
@@ -197,6 +220,7 @@ func (c *Client) TCP(address string) (net.Conn, error) {
 	return native.TCP(address)
 }
 func (c *Client) DialTCP(address string) (net.Conn, error) { return c.TCP(address) }
+func (c *Client) ReloadBandwidth(b config.Bandwidth) error { return c.bandwidth.reload(b) }
 func (c *Client) UDP() (hyclient.HyUDPConn, error) {
 	c.mu.RLock()
 	native := c.native
@@ -219,6 +243,7 @@ func (c *Client) Close() error {
 	listeners := append([]net.Listener(nil), c.listeners...)
 	udp := append([]net.PacketConn(nil), c.udpListeners...)
 	c.mu.Unlock()
+	c.bandwidth.close()
 	for _, l := range listeners {
 		l.Close()
 	}

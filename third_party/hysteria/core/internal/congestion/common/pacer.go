@@ -78,3 +78,10 @@ func (p *Pacer) TimeUntilSend() monotime.Time {
 func (p *Pacer) SetMaxDatagramSize(s congestion.ByteCount) {
 	p.maxDatagramSize = s
 }
+
+// Rebase preserves credit earned at the old rate, capped by the new rate's
+// burst budget. Call after changing the bandwidth returned by getBandwidth.
+func (p *Pacer) Rebase(now monotime.Time, budget congestion.ByteCount) {
+	p.budgetAtLastSent = min(max(budget, 0), p.maxBurstSize())
+	p.lastSentTime = now
+}

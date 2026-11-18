@@ -5,6 +5,7 @@ auth:
   type: password
   password: example-password
 
+# Positive up/down rates support live reload; ignoreClientBandwidth must remain false.
 bandwidth:
   up: 100 mbps
   down: 100 mbps

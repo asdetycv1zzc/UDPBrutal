@@ -1,5 +1,5 @@
-// Package extension exports the pinned Hysteria framing and fragmentation for
-// UDPBrutal's reverse extension. Forward proxy messages use the original core.
+// Package extension exports pinned Hysteria framing, fragmentation and runtime
+// hooks for UDPBrutal's extensions. Forward proxy messages use the original core.
 package extension
 
 import (

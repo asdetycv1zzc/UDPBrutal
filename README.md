@@ -34,7 +34,7 @@
 
   <div>
     <h3>⚡ Brutal at its core</h3>
-    <p>The pinned Hysteria2 core, Brutal controller and pacer, with native streams, DATAGRAMs, flow control and path MTU discovery.</p>
+    <p>The pinned Hysteria2 core with native streams, DATAGRAMs, flow control and path MTU discovery. Brutal supports live bandwidth updates and up to 1.33× loss compensation.</p>
   </div>
 
   <div>

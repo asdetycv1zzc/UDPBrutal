@@ -1,6 +1,7 @@
 server: your-server.example.com:443
 auth: example-password
 
+# Positive up/down rates support live reload; edit only this section while running.
 bandwidth:
   up: 100 mbps
   down: 100 mbps

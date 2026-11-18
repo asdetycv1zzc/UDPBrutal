@@ -10,6 +10,7 @@ import (
 	"time"
 
 	coreErrs "github.com/apernet/hysteria/core/v2/errors"
+	"github.com/apernet/hysteria/core/v2/extension"
 	"github.com/apernet/hysteria/core/v2/internal/congestion"
 	"github.com/apernet/hysteria/core/v2/internal/protocol"
 	"github.com/apernet/hysteria/core/v2/internal/utils"
@@ -36,10 +37,11 @@ type HyUDPConn interface {
 }
 
 type HandshakeInfo struct {
-	UDPEnabled  bool
-	Tx          uint64 // 0 if using BBR
-	ServerAddr  net.Addr
-	ECHAccepted bool
+	UDPEnabled      bool
+	BandwidthReload bool
+	Tx              uint64 // 0 if using BBR
+	ServerAddr      net.Addr
+	ECHAccepted     bool
 }
 
 func NewClient(config *Config) (Client, *HandshakeInfo, error) {
@@ -130,6 +132,9 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		Auth: c.config.Auth,
 		Rx:   c.config.BandwidthConfig.MaxRx,
 	})
+	if c.config.BandwidthReload {
+		req.Header.Set(extension.BandwidthReloadHeader, "1")
+	}
 	resp, err := rt.RoundTrip(req)
 	if err != nil {
 		if conn != nil {
@@ -186,10 +191,11 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		}()
 	}
 	return &HandshakeInfo{
-		UDPEnabled:  authResp.UDPEnabled,
-		Tx:          actualTx,
-		ServerAddr:  c.config.ServerAddr,
-		ECHAccepted: conn.ConnectionState().TLS.ECHAccepted,
+		UDPEnabled:      authResp.UDPEnabled,
+		BandwidthReload: c.config.BandwidthReload && !authResp.RxAuto && resp.Header.Get(extension.BandwidthReloadHeader) == "1",
+		Tx:              actualTx,
+		ServerAddr:      c.config.ServerAddr,
+		ECHAccepted:     conn.ConnectionState().TLS.ECHAccepted,
 	}, nil
 }
 

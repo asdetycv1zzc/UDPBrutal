@@ -101,6 +101,11 @@ type closeError struct {
 	immediate bool
 }
 
+type congestionControlUpdate struct {
+	apply func(congestion.CongestionControl) error
+	done  chan error
+}
+
 type errSwitchVersion struct {
 	nextPacketNumber protocol.PacketNumber
 	nextVersion      protocol.Version
@@ -192,6 +197,7 @@ type Conn struct {
 
 	notifyReceivedPacket chan struct{}
 	sendingScheduled     chan struct{}
+	congestionUpdates    chan congestionControlUpdate
 	receivedPackets      receivedPacketQueue
 
 	// closeChan is used to notify the run loop that it should terminate
@@ -582,6 +588,7 @@ func (c *Conn) preSetup(r *pathReceiver) {
 	c.notifyReceivedPacket = make(chan struct{}, 1)
 	c.closeChan = make(chan struct{}, 1)
 	c.sendingScheduled = make(chan struct{}, 1)
+	c.congestionUpdates = make(chan congestionControlUpdate, 1)
 	c.handshakeCompleteChan = make(chan struct{})
 
 	now := monotime.Now()
@@ -632,6 +639,12 @@ runLoop:
 		select {
 		case <-c.closeChan:
 			break runLoop
+		default:
+		}
+		// Process updates even when a busy connection skips the blocking select.
+		select {
+		case update := <-c.congestionUpdates:
+			c.applyCongestionControlUpdate(update)
 		default:
 		}
 
@@ -686,6 +699,8 @@ runLoop:
 				break runLoop
 			case <-c.timer.C:
 			case <-c.sendingScheduled:
+			case update := <-c.congestionUpdates:
+				c.applyCongestionControlUpdate(update)
 			case <-sendQueueAvailable:
 			case <-c.notifyReceivedPacket:
 				wasProcessed, err := c.handlePackets()
@@ -3314,6 +3329,36 @@ func estimateMaxPayloadSize(mtu protocol.ByteCount) protocol.ByteCount {
 // SetCongestionControl replace the current congestion control algorithm with a new one.
 func (c *Conn) SetCongestionControl(cc congestion.CongestionControl) {
 	c.sentPacketHandler.SetCongestionControl(cc)
+}
+
+// UpdateCongestionControl runs a short, nonblocking parameter update on the
+// connection owner goroutine. The callback must not call connection methods.
+// It must validate its arguments before changing the controller.
+func (c *Conn) UpdateCongestionControl(apply func(congestion.CongestionControl) error) error {
+	if apply == nil {
+		return errors.New("nil congestion control update")
+	}
+	update := congestionControlUpdate{apply: apply, done: make(chan error, 1)}
+	select {
+	case <-c.ctx.Done():
+		return context.Cause(c.ctx)
+	case c.congestionUpdates <- update:
+	}
+	select {
+	case err := <-update.done:
+		return err
+	case <-c.ctx.Done():
+		return context.Cause(c.ctx)
+	}
+}
+
+func (c *Conn) applyCongestionControlUpdate(update congestionControlUpdate) {
+	err := c.sentPacketHandler.UpdateCongestionControl(update.apply)
+	if err == nil {
+		// Re-evaluate the existing pacing timer at the new rate.
+		c.pacingDeadline = deadlineSendImmediately
+	}
+	update.done <- err
 }
 
 // InitialPacketSize returns the datagram size the connection starts out with,

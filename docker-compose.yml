@@ -12,4 +12,5 @@ services:
       - "18080:18080/tcp"   # Example reverseTCP listener
       - "15353:15353/udp"   # Example reverseUDP listener
     volumes:
+      # For editors using atomic saves, see the guide's directory-mount example.
       - ./config.yaml:/etc/udpbrutal/config.yaml:ro

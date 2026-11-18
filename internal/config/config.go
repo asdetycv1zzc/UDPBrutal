@@ -315,13 +315,17 @@ func Load(path string, out any) error {
 	if err != nil {
 		return err
 	}
+	return decode(b, out)
+}
+
+func decode(b []byte, out any) error {
 	dec := yaml.NewDecoder(bytes.NewReader(b))
 	dec.KnownFields(true)
-	if err = dec.Decode(out); err != nil {
+	if err := dec.Decode(out); err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
 	var extra any
-	if err = dec.Decode(&extra); err != io.EOF {
+	if err := dec.Decode(&extra); err != io.EOF {
 		return errors.New("config must contain one YAML document")
 	}
 	return nil

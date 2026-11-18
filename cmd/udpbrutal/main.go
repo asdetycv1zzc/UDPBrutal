@@ -120,6 +120,13 @@ func run(args []string) error {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+	// Keep watching the exact file selected at startup, including when -c was
+	// omitted. Reload never switches to a different search-path candidate.
+	resolvedPath, err := config.Find(path)
+	if err != nil {
+		return err
+	}
+	path = resolvedPath
 	if mode == "server" {
 		var cfg config.Server
 		if err := config.Load(path, &cfg); err != nil {
@@ -137,6 +144,7 @@ func run(args []string) error {
 			return err
 		}
 		defer s.Close()
+		go config.WatchServerBandwidth(ctx, path, cfg, s.ReloadBandwidth)
 		slog.Info("UDPBrutal server listening", "listen", s.Addr(), "transport", "Hysteria plaintext profile")
 		return s.Serve(ctx)
 	}
@@ -156,6 +164,7 @@ func run(args []string) error {
 		return err
 	}
 	defer c.Close()
+	go config.WatchClientBandwidth(ctx, path, cfg, c.ReloadBandwidth)
 	c.Wait()
 	return nil
 }

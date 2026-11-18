@@ -4,7 +4,7 @@
 
 基于 Hysteria2 **Brutal 拥塞控制**的明文 UDP 代理，提供本地 SOCKS5 上网和服务器到客户端的反向端口映射。正向与反向均支持 **TCP 和 UDP**。
 
-Brutal 基于[指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)，仅将丢包补偿倍率上限从 1.25 提高至 1.33；pacer 与上游字节一致，保留原始 import 路径。完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
+Brutal 基于[指定的 Hysteria 源码](https://github.com/HyNetworks/hysteria/blob/c2b181e0b0e72b077e4b0b7297735af14d1f9929/core/internal/congestion/brutal/brutal.go)，丢包补偿倍率上限为 1.33，并支持保留发送器状态的带宽热重载。pacer 新增重载时重设信用余额的方法，原 pacing 算法与 import 路径保留。完整来源及修改边界见 [NOTICE.md](../NOTICE.md)。客户端和服务器之间不实现或调用数据加密、TLS、证书、QUIC 包保护或混淆算法。`auth` 也是明文字符串。
 
 当前直接使用固定版本的 Hysteria2 核心与 QUIC 引擎，保留原生流、DATAGRAM、确认/丢包处理、重传、流控和路径 MTU 探测，仅替换为明文握手和无包保护配置。**不能与未经修改的 Hysteria2 客户端或服务器互通**。反向端口映射是基于原生双向流和 DATAGRAM 的项目扩展。
 
@@ -187,6 +187,35 @@ Brutal 补偿倍率上限已由固定上游的 **1.25 倍提高至 1.33 倍**。
 
 TLS、ACME 和混淆按明文要求排除。当前 CLI 暴露 SOCKS5、TCP/UDP 转发和反向扩展，尚未暴露 HTTP 代理、TUN、透明代理及 ACL 模式；QUIC 参数和 BBR/Reno 回退已使用原实现。未知配置字段会报错，不能直接复制完整 HY2 配置使用。旧自定义传输的 `transport.udp.idleTimeout` 应改为 `quic.maxIdleTimeout`；原 `handshakeTimeout`、`maxSessions` 删除，由 QUIC 引擎管理握手和流数量。
 
+### 带宽热重载
+
+两端均升级到支持热重载的版本，并始终明确配置正数的 `bandwidth.up` 和 `bandwidth.down`；服务端保持 `ignoreClientBandwidth: false`。无需新增开关。直接修改正在运行的实例所用配置文件：
+
+```yaml
+bandwidth:
+  up: 300 mbps
+  down: 200 mbps
+  disableLossCompensation: false
+```
+
+程序每秒重新读取启动时选定的同一配置路径，连续两次内容相同后校验并应用，通常需要 1–2 秒，再加控制消息传输时间。两端通过独立可靠流交换新参数，本端发送目标仍为 `min(本端 up, 对端 down)`，速率仍按每条外层连接计算。服务端会更新所有支持该功能的已连接客户端，新连接也使用最新接受的参数。SOCKS5、固定转发及反向映射的 TCP/UDP 均适用；带宽变更保留原隧道、TCP 连接和 UDP 会话。
+
+热重载仅覆盖 `bandwidth.up`、`bandwidth.down` 和 `bandwidth.disableLossCompensation`。YAML/JSON 错误、未知字段、删除带宽、零值或其他配置字段变化，都会拒绝该次文件重载并保留当前值；切换为自动拥塞控制不在此功能范围内。日志中的 `bandwidth config reloaded` 表示本地配置已接受，`bandwidth applied` 表示本端发送器已更新，`bandwidth update acknowledged` 表示对端已确认应用该版本。控制流异常时在原隧道上重试。旧版对端可以继续普通代理，但需升级后才能在线同步带宽。
+
+**Docker 中需要确保容器能看到更新后的文件。** 原来的单文件挂载适用于原地写入；编辑器使用原子替换保存时，挂载可能仍指向旧文件。兼容这类保存方式可一次性改为目录挂载：
+
+```bash
+mkdir -p config
+cp config.yaml config/config.yaml
+```
+
+```yaml
+volumes:
+  - ./config:/etc/udpbrutal:ro
+```
+
+修改挂载后执行一次 `docker compose up -d --force-recreate udpbrutal`。此后编辑 **`config/config.yaml`**，带宽变化无需重启容器；启动参数仍为 `-c /etc/udpbrutal/config.yaml`。不使用 Docker 时，直接编辑原配置路径即可。
+
 ### 定位反向 TCP 秒级停顿
 
 若 UDP socket 已成功扩大，而吞吐仍出现间歇性停顿，可以在两端 UDPBrutal 进程启用默认关闭的诊断。加入现有 Compose 服务的 `environment`：
@@ -296,7 +325,7 @@ tcpdump -i any -nn -s 128 -B 4096 -w /tmp/udpbrutal.pcap 'udp port 443'
 
 ## 传输与验证范围
 
-Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`。Brutal 仅将最高丢包补偿倍率由 1.25 提高至 1.33；pacer 与固定上游字节一致，原始 import 保留。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，不再使用自制可靠 UDP、512 包窗口或 yamux。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
+Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`。Brutal 补偿上限为 1.33，并增加原地更新带宽的方法；pacer 增加热重载时保留并裁剪信用余额的方法，原始 import 保留。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，拥塞参数更新在连接线程中执行。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
 
 UDP 恢复为原生不可靠 DATAGRAM，并使用 HY2 原始 UDPMessage、分片/重组和会话管理。外层 UDP 包不再固定封顶 1200 字节，使用上游初始包大小、EMSGSIZE 回退、对端限制和路径 MTU 探测；上游 `InitialPacketSize=1280`、QUIC 的 1200 字节最低要求、HY2 的 `MaxDatagramFrameSize=1200` 是不同概念。原 HY2 应用 UDP 缓冲 `MaxUDPSize=4096` 保留。TLS 相关握手、包保护、票据、0-RTT 密钥和指纹处理移除；无加密配置和反向扩展的必要差异见 [PROTOCOL.md](../PROTOCOL.md)。
 
@@ -348,7 +377,7 @@ GOPROXY='https://goproxy.cn|https://proxy.golang.org|direct' docker compose up -
 ```bash
 # 查看服务状态
 docker compose ps
-# 修改 config.yaml 后重新创建容器
+# 修改带宽之外的配置，或修改挂载方式后重新创建容器
 docker compose up -d --force-recreate
 # 更新源码后重新构建并启动
 docker compose up -d --build

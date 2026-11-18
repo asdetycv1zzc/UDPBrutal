@@ -14,6 +14,7 @@ import (
 	"github.com/apernet/quic-go/http3"
 	"github.com/apernet/quic-go/quicvarint"
 
+	"github.com/apernet/hysteria/core/v2/extension"
 	"github.com/apernet/hysteria/core/v2/internal/congestion"
 	"github.com/apernet/hysteria/core/v2/internal/protocol"
 	"github.com/apernet/hysteria/core/v2/internal/utils"
@@ -164,13 +165,18 @@ func (h *h3sHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && r.Host == protocol.URLHost && r.URL.Path == protocol.URLPath {
 		h.authMutex.Lock()
 		defer h.authMutex.Unlock()
+		bandwidth := h.config.BandwidthConfig
+		if h.config.BandwidthConfigFunc != nil {
+			bandwidth = h.config.BandwidthConfigFunc()
+		}
 		if h.authenticated {
 			// Already authenticated
 			protocol.AuthResponseToHeader(w.Header(), protocol.AuthResponse{
 				UDPEnabled: !h.config.DisableUDP,
-				Rx:         h.config.BandwidthConfig.MaxRx,
+				Rx:         bandwidth.MaxRx,
 				RxAuto:     h.config.IgnoreClientBandwidth,
 			})
+			h.setBandwidthReloadHeader(w, r)
 			w.WriteHeader(protocol.StatusAuthOK)
 			return
 		}
@@ -187,13 +193,13 @@ func (h *h3sHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				actualTx = 0
 			} else {
 				// actualTx = min(serverTx, clientRx)
-				if h.config.BandwidthConfig.MaxTx > 0 && actualTx > h.config.BandwidthConfig.MaxTx {
+				if bandwidth.MaxTx > 0 && actualTx > bandwidth.MaxTx {
 					// We have a maxTx limit and the client is asking for more than that,
 					// return and use the limit instead
-					actualTx = h.config.BandwidthConfig.MaxTx
+					actualTx = bandwidth.MaxTx
 				}
 				if actualTx > 0 {
-					congestion.UseBrutal(h.conn, actualTx, h.config.BandwidthConfig.DisableLossCompensation)
+					congestion.UseBrutal(h.conn, actualTx, bandwidth.DisableLossCompensation)
 				} else {
 					// Client doesn't know its own bandwidth, use the configured congestion controller.
 					congestion.UseConfigured(h.conn, h.config.CongestionConfig.Type, h.config.CongestionConfig.BBRProfile)
@@ -202,9 +208,10 @@ func (h *h3sHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Auth OK, send response
 			protocol.AuthResponseToHeader(w.Header(), protocol.AuthResponse{
 				UDPEnabled: !h.config.DisableUDP,
-				Rx:         h.config.BandwidthConfig.MaxRx,
+				Rx:         bandwidth.MaxRx,
 				RxAuto:     h.config.IgnoreClientBandwidth,
 			})
+			h.setBandwidthReloadHeader(w, r)
 			w.WriteHeader(protocol.StatusAuthOK)
 			// Call event logger
 			if tl := h.config.TrafficLogger; tl != nil {
@@ -252,6 +259,12 @@ func (h *h3sHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Not an auth request, pretend to be a normal HTTP server
 		h.masqHandler(w, r)
+	}
+}
+
+func (h *h3sHandler) setBandwidthReloadHeader(w http.ResponseWriter, r *http.Request) {
+	if h.config.BandwidthReload && r.Header.Get(extension.BandwidthReloadHeader) == "1" {
+		w.Header().Set(extension.BandwidthReloadHeader, "1")
 	}
 }
 

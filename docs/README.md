@@ -173,6 +173,56 @@ Brutal's adaptive loss-compensation factor is capped at **1.33x**, increased fro
 
 The source defaults are a 30-second QUIC idle timeout and 10-second client keepalive. Forwarded UDP associations default to a 60-second idle timeout. Configuration parsing rejects unknown fields.
 
+### Bandwidth hot reload
+
+Upgrade both endpoints and keep positive `bandwidth.up` and `bandwidth.down`
+values on both sides. Leave the server's `ignoreClientBandwidth` disabled.
+No additional configuration switch is needed. Edit the running instance's file:
+
+```yaml
+bandwidth:
+  up: 300 mbps
+  down: 200 mbps
+  disableLossCompensation: false
+```
+
+The process checks the same path every second and accepts a change after two
+identical reads, usually 1–2 seconds plus control-message delivery time. Both
+endpoints exchange updated limits over a dedicated reliable stream and compute
+TX as `min(local.up, peer.down)`. The server updates all supporting connected
+clients; new connections also use the latest accepted settings. SOCKS5, fixed
+forwarding and reverse mappings share this behavior for both TCP and UDP.
+The update keeps the existing tunnel, TCP streams and UDP sessions in place.
+Limits remain per outer connection, as in the original bandwidth negotiation.
+
+Only `bandwidth.up`, `bandwidth.down` and `bandwidth.disableLossCompensation`
+are reloaded. Invalid YAML/JSON, unknown fields, missing/zero bandwidth and
+changes outside `bandwidth` reject that file revision and keep the active
+settings. Switching to automatic congestion control is outside this feature.
+Logs distinguish `bandwidth config reloaded`, `bandwidth applied` and
+`bandwidth update acknowledged`; the last confirms the peer applied that
+revision. A failed control stream retries on the same tunnel. Old peers keep
+ordinary proxying but need upgrading for live updates.
+
+For Docker, the process must see the changed file. The existing single-file
+bind mount works with in-place writes. Editors that save by atomically replacing
+the file can leave that mount attached to the old file. To support those saves,
+copy the configuration into a directory and change the mount once:
+
+```bash
+mkdir -p config
+cp config.yaml config/config.yaml
+```
+
+```yaml
+volumes:
+  - ./config:/etc/udpbrutal:ro
+```
+
+Run `docker compose up -d --force-recreate udpbrutal` once after changing the
+mount. Afterwards edit `config/config.yaml`; bandwidth changes need no container
+restart. The existing `-c /etc/udpbrutal/config.yaml` command remains valid.
+
 ### QUIC and congestion settings
 
 Use Hysteria-style `quic` settings, for example:
@@ -374,7 +424,7 @@ Common commands:
 ```bash
 # Show service status
 docker compose ps
-# Recreate after editing config.yaml
+# Recreate for configuration outside bandwidth, or after changing mounts
 docker compose up -d --force-recreate
 # Rebuild after updating source
 docker compose up -d --build

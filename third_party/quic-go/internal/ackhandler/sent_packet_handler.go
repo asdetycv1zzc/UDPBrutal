@@ -1383,3 +1383,17 @@ func (h *sentPacketHandler) SetCongestionControl(cc congestionExt.CongestionCont
 	}
 	h.congestionMutex.Unlock()
 }
+
+// UpdateCongestionControl is called only by the connection owner goroutine.
+func (h *sentPacketHandler) UpdateCongestionControl(apply func(congestionExt.CongestionControl) error) error {
+	h.congestionMutex.Lock()
+	defer h.congestionMutex.Unlock()
+	switch cc := h.congestion.(type) {
+	case *ccAdapter:
+		return apply(cc.CC)
+	case *ccAdapterEx:
+		return apply(cc.CC)
+	default:
+		return errors.New("active congestion controller does not support external parameter updates")
+	}
+}

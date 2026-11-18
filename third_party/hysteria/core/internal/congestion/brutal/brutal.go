@@ -65,6 +65,17 @@ func (b *BrutalSender) SetRTTStatsProvider(rttStats congestion.RTTStatsProvider)
 	b.rttStats = rttStats
 }
 
+// UpdateBandwidth must run on the connection owner goroutine, just like packet
+// and ACK callbacks. Keep RTT, MTU, ACK samples and accrued pacing credit.
+func (b *BrutalSender) UpdateBandwidth(bps uint64, disableLossCompensation bool) {
+	now := monotime.Now()
+	budget := b.pacer.Budget(now)
+	b.bps = congestion.ByteCount(bps)
+	b.disableLossCompensation = disableLossCompensation
+	b.updateAckRate(int64(time.Duration(now) / time.Second))
+	b.pacer.Rebase(now, budget)
+}
+
 func (b *BrutalSender) TimeUntilSend(bytesInFlight congestion.ByteCount) monotime.Time {
 	return b.pacer.TimeUntilSend()
 }

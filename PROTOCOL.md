@@ -101,7 +101,8 @@ Brutal is selected by the original bandwidth negotiation. If bandwidth is
 unknown or the server selects automatic control, the original BBR/Reno
 selection remains available. Brutal's maximum loss-compensation factor is
 1.33x, replacing the upstream 1.25x cap. Its minimum ACK rate is defined as
-`1 / 1.33`; the remaining controller logic and the entire pacer retain the
+`1 / 1.33`. Runtime parameter updates and pacing-credit rebasing are the
+additional changes described below; packet and ACK algorithms retain their
 pinned source implementation.
 
 Once the upstream minimum sample count is met, the adaptive factor is
@@ -111,6 +112,50 @@ and congestion window for both native streams and DATAGRAMs. Setting
 negotiated 300 mbps rate, the maximum compensated sending budget is 399 mbps;
 this is not a guarantee of delivered application throughput or an IP/UDP
 wire-rate limit. UDP DATAGRAM loss is still not retransmitted or FEC-recovered.
+
+## Fixed-bandwidth hot reload extension
+
+When both endpoints specify positive `bandwidth.up` and `bandwidth.down`, and
+the server has `ignoreClientBandwidth` disabled, the client advertises
+`UDPBrutal-Bandwidth-Reload: 1` in the authentication request. A supporting
+server returns the same header only after authentication succeeds. Without
+mutual support, ordinary proxying continues and no bandwidth control stream
+is opened. Live updates require both endpoints to support this extension.
+
+The client opens a dedicated native bidirectional stream with first varint
+`0x554203`. It is independent of reverse registration and does not require
+server-initiated streams. Both directions use the existing uint32 big-endian
+length plus JSON encoding, bounded to 16384 bytes. A message contains:
+
+- `version`: 1.
+- `revision`: the sender's positive, monotonically increasing settings revision.
+- `ack`: the other endpoint's revision applied to the local sending budget,
+  or zero before the initial exchange.
+- `up` and `down`: positive byte-per-second limits before loss compensation.
+
+Each endpoint owns its revision; concurrent edits do not overwrite the other
+endpoint's configuration. Messages are ordered by the reliable stream, and
+stale/inconsistent revisions are rejected. Each side computes local TX as
+`min(local.up, peer.down)`. A changed local or peer revision is acknowledged
+after the local sender has applied it. Receipt, local application and peer
+acknowledgement have distinct log messages. A failed control stream retains
+the last applied sender state and is retried by the client on the same
+connection; it does not deliberately disconnect proxy streams or UDP sessions.
+
+The CLI reopens the selected configuration path every second and waits for
+two identical reads before parsing. It reloads only the `bandwidth` fields;
+zero/missing rates, invalid configuration and changes outside that section
+are rejected while retaining the active settings. Client reconnects and new
+server authentications read the latest accepted in-memory limits.
+
+Runtime changes run through the connection owner loop, not concurrently with
+ACK, loss or packet callbacks. The existing Brutal sender keeps its RTT,
+discovered MTU and ACK sample window. The pacer preserves already earned
+credit, clamps it to the new burst limit and rebases its timestamp; the new
+rate does not retroactively create credit. The connection re-evaluates pacing
+after an update. Disabling loss compensation still uses a 1.0 factor, and the
+enabled factor remains capped at 1.33. This extension does not add UDP payload
+retransmission, FEC, encryption or a new transport protocol.
 
 ## Reverse extension
 

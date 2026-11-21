@@ -313,7 +313,7 @@ git pull --ff-only
 docker-compose up -d --build udpbrutal
 ```
 
-启用诊断后，`socket_batch_calls` 和 `socket_batch_packets` 显示实际批量提交情况；低负载时只有一个待发包，因此为 0 正常。该改动尚未经过构建或性能验证，不保证特定吞吐，也没有确认此前 GSO 开启时停顿的根因。
+启用诊断后，`socket_batch_calls` 和 `socket_batch_packets` 显示实际批量提交情况；低负载时只有一个待发包，因此为 0 正常。该路径尚未经过性能基准测试，不保证特定吞吐，也没有确认此前 GSO 开启时停顿的根因。
 
 如果仍出现停顿，在两端宿主机同时捕获 UDP 头部，并保留对应诊断日志。以下命令使用当前示例隧道端口；如有修改，替换 `443`：
 
@@ -327,9 +327,13 @@ tcpdump -i any -nn -s 128 -B 4096 -w /tmp/udpbrutal.pcap 'udp port 443'
 
 Brutal 与 pacer 位于 `third_party/hysteria/core/internal/congestion/`。Brutal 补偿上限为 1.33，并增加原地更新带宽的方法；pacer 增加热重载时保留并裁剪信用余额的方法，原始 import 保留。确认/丢包处理、重传、流与连接流控、拥塞控制接入及 MTU 探测使用 `third_party/quic-go/` 中的原引擎，拥塞参数更新在连接线程中执行。逐文件原始哈希见 [UPSTREAM_FILES.json](../third_party/UPSTREAM_FILES.json)。
 
-UDP 恢复为原生不可靠 DATAGRAM，并使用 HY2 原始 UDPMessage、分片/重组和会话管理。外层 UDP 包不再固定封顶 1200 字节，使用上游初始包大小、EMSGSIZE 回退、对端限制和路径 MTU 探测；上游 `InitialPacketSize=1280`、QUIC 的 1200 字节最低要求、HY2 的 `MaxDatagramFrameSize=1200` 是不同概念。原 HY2 应用 UDP 缓冲 `MaxUDPSize=4096` 保留。TLS 相关握手、包保护、票据、0-RTT 密钥和指纹处理移除；无加密配置和反向扩展的必要差异见 [PROTOCOL.md](../PROTOCOL.md)。
+UDP 使用原生不可靠 DATAGRAM，并保留 HY2 原始 UDPMessage、分片/重组和会话管理。两端显式声明引擎默认的 16383 字节 DATAGRAM 接收能力，实际发送大小取对端接收上限（扣除帧头）与当前路径 MTU 负载估计的较小值；较大的接收上限不会强制发送大包。仅当序列化后的消息（含反向扩展前缀）超过实际容量时才分片。上游初始包大小 `InitialPacketSize=1280`、EMSGSIZE 回退、平台 DF 支持和路径 MTU 探测保持原逻辑，QUIC 的 1200 字节最低要求是另一项约束。
 
-本次传输重构未进行编译、容器构建、跨平台构建或运行测试。仅进行了源码来源比对、语法/格式、依赖导入和静态审阅，这些不构成运行正确性证明。真实代理流量、丢包、重连和跨平台行为尚未验证。
+两端升级并重新建立连接后，才能解除两个方向原有的 1200 字节 DATAGRAM 限制。服务端仅对省略接收能力参数的旧客户端保留 1200 字节兼容假定；新客户端连接旧服务端时仍遵守其声明的 1200 字节上限。原 HY2 应用 UDP 缓冲 `MaxUDPSize=4096` 保留，路径 MTU 容不下全部封装头时，大尺寸 WireGuard 数据包仍会分片。TLS 相关握手、包保护、票据、0-RTT 密钥和指纹处理移除；无加密配置和反向扩展的必要差异见 [PROTOCOL.md](../PROTOCOL.md)。
+
+DATAGRAM 接收上限修正已在 Linux amd64、Go 1.26.0 下通过 `go test`、`go vet`（含内嵌 Hysteria 与 QUIC 模块）及 `CGO_ENABLED=0` 应用构建。回环回归测试覆盖双向超过原 1200 字节限制的数据报传输、PMTU 探测后的容量增长、旧端省略参数或声明 1200 的兼容限制、普通 UDP 回显/重组，以及反向 UDP 前缀与分片。超过原上限的传输测试在旧配置下会失败。手动构建工作流现在会先运行回归测试。
+
+这些检查尚未覆盖容器构建、其他平台实际运行、部署后的 WireGuard 吞吐/CPU 占用，以及丢包和重连行为。源码哈希继续表示固定上游原始文件，本地适配见 [SOURCE_CHANGES.md](../third_party/SOURCE_CHANGES.md)。
 
 ## Docker Compose
 

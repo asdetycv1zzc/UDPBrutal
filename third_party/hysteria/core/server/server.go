@@ -52,6 +52,8 @@ func NewServer(config *Config) (Server, error) {
 		return nil, err
 	}
 	tlsConfig := convertToStdTLSConfig(config)
+	// Advertise the engine's full DATAGRAM receive capability. Only legacy
+	// clients that omit the parameter need the conservative 1200-byte fallback.
 	quicConfig := &quic.Config{
 		InitialStreamReceiveWindow:     config.QUICConfig.InitialStreamReceiveWindow,
 		MaxStreamReceiveWindow:         config.QUICConfig.MaxStreamReceiveWindow,
@@ -61,7 +63,6 @@ func NewServer(config *Config) (Server, error) {
 		MaxIncomingStreams:             config.QUICConfig.MaxIncomingStreams,
 		DisablePathMTUDiscovery:        config.QUICConfig.DisablePathMTUDiscovery,
 		EnableDatagrams:                true,
-		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
 		AssumePeerMaxDatagramFrameSize: protocol.MaxDatagramFrameSize,
 		DisablePathManager:             true,
 	}

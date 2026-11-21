@@ -31,13 +31,14 @@ jobs:
         with:
           go-version: '1.26.x'
           cache: true
-      - name: Formatting and static analysis
+      - name: Formatting, tests and static analysis
         run: |
           if [ -n "$(gofmt -l cmd internal)" ]; then
             gofmt -l cmd internal
             exit 1
           fi
           go vet ./...
+          go test ./...
           go build ./...
 
   build:

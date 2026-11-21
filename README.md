@@ -77,6 +77,6 @@ Module download timed out? See the [build proxy settings](docs/README.md#module-
 
 UDPBrutal uses a dedicated plaintext handshake and packet profile and does not interoperate with unmodified Hysteria2. Source attribution and implementation boundaries are documented in [NOTICE.md](NOTICE.md).
 
-Builds are manual. This transport rewrite has not been compiled or run; see the [validation scope](docs/README.md#validation-scope).
+Builds are manual. Linux loopback regression tests cover DATAGRAM negotiation, PMTU growth and fragmentation; see the [validation scope](docs/README.md#validation-scope).
 
 **⭐ Star UDPBrutal if it helps your project.**

@@ -28,6 +28,7 @@
 
 ## 新增适配与扩展
 
+- `hysteria/core/client/client.go`、`server/server.go`：两端声明 QUIC 引擎默认 DATAGRAM 接收能力，不再省略客户端参数或显式封顶为 1200；服务端仅对省略参数的旧客户端保留 1200 兼容回退，显式协商值优先。实际发送上限与分片仍由原 `SendDatagram` 的对端限制和当前 PMTU 估计决定，原 HY2 协议常量与分片器不变。
 - `internal/config/reload.go`、`internal/proxy/bandwidth.go`：正数固定带宽的配置监视、独立控制流、两端版本号与确认、同连接控制流重试及原地参数更新；CLI 固定初始配置路径，其他字段变更拒绝重载。
 - `hysteria/core/extension/bandwidth.go`：能力协商头及连接线程内更新现有 Brutal 的入口；client/server 增加能力协商，server/config 增加新认证读取最新带宽的快照回调。
 - `quic-go/connection.go`、`internal/ackhandler/interfaces.go`、`sent_packet_handler.go`：通过连接线程队列更新发送器参数，并重新计算 pacing 定时，不替换发送器或重置恢复状态。
@@ -50,4 +51,4 @@
 
 `mtu_discoverer.go`、flowcontrol 文件、除 sent_packet_handler.go/interfaces.go 外的原 ACK/loss 文件、HY2 frag/proxy 协议文件和 SOCKS5/固定转发文件保持原始字节。Brutal/pacer 增加上述参数更新与信用重设方法；UPSTREAM_FILES.json 继续记录固定上游的原始哈希。`connection.go`、`transport.go` 与 `sent_packet_handler.go` 保留被动诊断 hook；`send_queue.go` 保留批量 IO 和观测。热重载只更新拥塞参数及对应 pacing 时机，不重置流、会话、恢复状态或路径 MTU。
 
-本次未编译或运行验证。
+DATAGRAM 接收上限修正已通过 Linux amd64、Go 1.26.0 下的应用构建、根模块及内嵌 Hysteria/QUIC 包测试与静态分析。`internal/proxy/datagram_mtu_test.go` 使用真实核心连接覆盖双向大帧、PMTU 容量增长、旧端兼容限制、正向重组和反向前缀/分片；旧配置会使大帧回归测试失败。尚未验证容器、其他平台实际运行或部署性能。

@@ -82,6 +82,8 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		GetClientCertificate:           c.config.TLSConfig.GetClientCertificate,
 		EncryptedClientHelloConfigList: c.config.TLSConfig.ECHConfigList,
 	}
+	// Advertise the engine's full DATAGRAM receive capability. Actual outgoing
+	// payload sizes remain bounded by the peer's limit and the current path MTU.
 	quicConfig := &quic.Config{
 		MaxIncomingStreams:             c.config.QUICConfig.MaxIncomingStreams,
 		InitialStreamReceiveWindow:     c.config.QUICConfig.InitialStreamReceiveWindow,
@@ -92,8 +94,6 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		KeepAlivePeriod:                c.config.QUICConfig.KeepAlivePeriod,
 		DisablePathMTUDiscovery:        c.config.QUICConfig.DisablePathMTUDiscovery,
 		EnableDatagrams:                true,
-		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
-		OmitMaxDatagramFrameSize:       true,
 		DisablePathManager:             true,
 		ChromeParrot:                   false, // No TLS fingerprint or ClientHello in plaintext mode.
 	}

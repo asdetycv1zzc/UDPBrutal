@@ -250,10 +250,20 @@ The old `transport.udp.idleTimeout` setting moves to `quic.maxIdleTimeout`.
 The former custom-transport `handshakeTimeout` and `maxSessions` settings are
 removed; the original QUIC engine now owns handshake timing and stream limits.
 
-There is no fixed 1200-byte outer UDP ceiling. The source's 1280-byte initial
-packet setting, fallback and MTU probing are distinct from the original
-1200-byte DATAGRAM-frame limit. The original 4096-byte application UDP buffers
-remain in the Hysteria core and SOCKS/UDP-forwarding adapters.
+Both endpoints advertise the engine's 16383-byte DATAGRAM receive capability.
+Actual outgoing data is limited by the peer's capability and the current
+path-MTU payload estimate; the larger receive limit does not force larger
+packets. HY2 fragments a message only when its serialized size, including any
+reverse prefix, exceeds that effective limit. The source's 1280-byte initial
+packet setting, fallback and MTU probing remain in use. The original 4096-byte
+application UDP buffers remain in the Hysteria core and SOCKS/UDP-forwarding
+adapters.
+
+Upgrade both endpoints and reconnect to remove the former 1200-byte DATAGRAM
+limit in both directions. A server still assumes 1200 for older clients that
+omit the transport parameter, and a new client honors an old server's advertised
+1200-byte limit. Large WireGuard packets can still need fragmentation when the
+path MTU cannot accommodate all encapsulation headers.
 
 ## Compatibility
 
@@ -364,7 +374,7 @@ git pull --ff-only
 docker-compose up -d --build udpbrutal
 ```
 
-With diagnostics enabled, `socket_batch_calls` and `socket_batch_packets` show actual batch submissions. Zero is normal when only one packet is queued. This change has not been built or benchmarked, does not guarantee a specific throughput, and does not establish the cause of the earlier GSO-enabled stalls.
+With diagnostics enabled, `socket_batch_calls` and `socket_batch_packets` show actual batch submissions. Zero is normal when only one packet is queued. This path has not been performance-benchmarked, does not guarantee a specific throughput, and does not establish the cause of the earlier GSO-enabled stalls.
 
 If pauses persist, capture UDP headers simultaneously on both hosts and retain matching diagnostic logs. Replace `443` if the tunnel uses another port:
 
@@ -376,7 +386,9 @@ After one pause, stop with Ctrl+C, label the server/client files, and retain tcp
 
 ## Validation Scope
 
-This rewritten transport has not been compiled, container-built or run. Source hashes, syntax/formatting, dependency imports and static review can be checked against the pinned upstream revision; these do not establish runtime correctness. Proxy traffic, losses, reconnection and cross-platform behavior remain unverified. No functional test suite was added or run, and builds still require a manual request.
+The DATAGRAM receive-limit fix was validated with Go 1.26.0 on Linux amd64 using `go test`, `go vet` (including the embedded Hysteria and QUIC modules), and a `CGO_ENABLED=0` application build. Loopback regression tests cover bidirectional DATAGRAM delivery above the former 1200-byte cap, PMTU-driven payload growth, legacy omitted/1200-byte receive limits, ordinary UDP echo/reassembly, and reverse UDP prefix/fragmentation. The above-cap delivery test fails against the previous configuration. The manual build workflow now runs the regression tests before packaging.
+
+Container builds, execution on other platforms, deployed WireGuard throughput/CPU usage, loss and reconnection behavior remain unverified by these checks. Source hashes still record the original pinned upstream files; local adaptations are listed in [SOURCE_CHANGES.md](../third_party/SOURCE_CHANGES.md).
 
 ## Docker Compose
 

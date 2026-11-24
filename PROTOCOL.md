@@ -37,9 +37,22 @@ authenticity or ownership guarantee.
 
 There is no fixed 1200-byte ceiling on the outer UDP payload. The source
 `InitialPacketSize=1280`, the source EMSGSIZE fallback, peer limits, platform
-DF support, and the source MTU discoverer determine packet sizing. QUIC's
-1200-byte minimum and Hysteria's separate `MaxDatagramFrameSize=1200` must not
-be confused with a fixed outer packet limit. The MTU discoverer and congestion
+DF support, and the source MTU discoverer determine packet sizing. Both endpoints
+advertise the QUIC engine's default DATAGRAM receive limit (16383 bytes), rather
+than Hysteria's former 1200-byte limit. This is a receive capability, not a packet
+size: `SendDatagram` takes the smaller of the peer's limit (minus the frame
+header) and the current path-MTU payload estimate. HY2 fragmentation is used
+only when the serialized message, including any reverse prefix, exceeds that
+effective limit. QUIC's 1200-byte minimum is a separate constraint.
+
+Older plaintext-profile clients omitted the DATAGRAM transport parameter. The
+server retains a conservative 1200-byte assumption only for such clients; an
+explicitly advertised peer limit takes precedence. New clients honor an old
+server's advertised 1200-byte limit. Upgrade both endpoints and reconnect to
+remove these legacy limits in both directions. The 4096-byte application UDP
+limit is unchanged, and path MTU can still require fragmentation.
+
+The MTU discoverer and congestion
 controller adapters are unchanged source files. The recovery owner has optional
 diagnostic counter hooks; its recovery decisions remain the pinned algorithms.
 
@@ -216,7 +229,11 @@ The local observer adds counters, clock reads and nonblocking stream snapshots
 only when enabled, and is disabled by default. Diagnostics do not establish a
 stall's cause or fix it without observations from the affected deployment.
 
-This transport rewrite has not been compiled, built into images, or exercised
-with end-to-end traffic. Source hashing, parsing/formatting, module resolution,
-and static review are the checks performed for this revision. These checks
-do not establish runtime correctness.
+The DATAGRAM receive-limit fix was built and tested with Go 1.26.0 on Linux
+amd64. Loopback regression tests cover delivery above the former 1200-byte cap
+in both directions, larger payloads after PMTU probing, legacy missing/1200-byte
+receive parameters, ordinary UDP echo/reassembly, and reverse-prefix
+fragmentation. The old configuration fails the above-cap delivery regression.
+Static analysis also covers the embedded Hysteria and QUIC modules. Container
+builds, cross-platform execution, deployment performance and loss/reconnection
+behavior remain outside this validation scope.
